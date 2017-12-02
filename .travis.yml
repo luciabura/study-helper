@@ -9,5 +9,4 @@ install:
   - python -c "import nltk; nltk.download('stopwords');"
 
 script:
-  - python setup.py install
   - pytest
