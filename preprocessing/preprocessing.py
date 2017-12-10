@@ -47,7 +47,7 @@ def clean_and_format(text):
     text = ' '.join(words)
 
     # get rid of everything except . , ? and '
-    text = _strip_punctuation(text)
+    text = _strip_punctuation(text, partial=True)
     return text
 
 
@@ -106,12 +106,16 @@ def remove_hyphens(words):
     return words, hyphenated
 
 """Internal functions"""
-RE_PUNCT = re.compile('[^\w\'.,?]+', re.UNICODE)
+RE_SOME_PUNCT = re.compile('[^\w\'.,?]+', re.UNICODE)
+RE_ALL_PUNCT = re.compile('[^\w\']+', re.UNICODE)
 
 
-def _strip_punctuation(sentence):
+def _strip_punctuation(sentence, partial=False):
     """Helper function to remove punctuation"""
-    return RE_PUNCT.sub(" ", sentence)
+    if partial:
+        return RE_SOME_PUNCT.sub(" ", sentence)
+    else:
+        return RE_ALL_PUNCT.sub(" ", sentence)
 
 
 def nltk_remove_stopwords(data):
