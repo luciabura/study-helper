@@ -17,5 +17,5 @@ setup(
     keywords=['NLP', 'keyphrase extraction', 'summarization', 'question generation'],
 
     packages=find_packages(),
-    install_requires=['networkx>=2.0', 'nltk>=3.2.1', 'numpy>=1.13.3'],
+    install_requires=['networkx>=2.0', 'nltk>=3.2.1', 'numpy>=1.13.3', 'spacy'],
 )
