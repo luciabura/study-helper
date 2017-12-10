@@ -3,12 +3,12 @@ import operator
 
 import preprocessing.preprocessing as preprocess
 from utilities.utils import read_file
-from utilities.words import get_cs_words
+# from utilities.words import get_cs_words
 
 WINDOW_SIZE = 2
 INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS']
 PUNCTUATION = ['.', '?', ',']
-REFERENCE_WORDS = get_cs_words()
+# REFERENCE_WORDS = get_cs_words()
 
 
 def get_keyword_combinations(original_tokens, scores):
