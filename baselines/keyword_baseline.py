@@ -9,21 +9,22 @@ key concepts when appearing within a scientific paper or teaching material.
 """
 from nltk import FreqDist
 
-from preprocessing.preprocessing import word_tokenize
+from preprocessing.preprocessing import nltk_word_tokenize
 from utilities.utils import read_file
 
 
+def get_keywords(file_text, word_count=1):
+    """Returns the keywords, based on frequency, for the file_text"""
+    words = nltk_word_tokenize(file_text)
+    keywords = get_most_common(words, word_count)
+    return keywords
+
+
 def get_most_common(words, word_count=1):
-    """Print on screen the first `word_count` words that have the
+    """Return the first `word_count` words that have the
     highest frequency count"""
     counts = FreqDist(words)
     return [word for word, _ in counts.most_common(word_count)]
-
-
-def get_keywords(file_text, word_count=1):
-    words = word_tokenize(file_text)
-    keywords = get_most_common(words, word_count)
-    return keywords
 
 
 if __name__ == '__main__':
