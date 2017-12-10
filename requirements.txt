@@ -1,5 +1,7 @@
 nltk
 numpy
+networkx
 scikit-learn
 tensorflow
 pytest
+spacy
