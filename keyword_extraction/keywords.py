@@ -2,20 +2,21 @@
 This is the first step of the study-helper pipeline.
 It return the specified (required) number of keywords from a given text
 It assumes the text has not been preprocessed and it only a long string
-
 Making use of the preprocessor file,
 
 Using the co-occurence relation for calculating scores and weighs for words.
 Other relations exist and may be inspected later for performance comparison.
 window-size may be arbitrarily chosen but W=2 works best
+
+TODO: Make sure description is accurate
 """
 import networkx as nx
 
 import preprocessing.preprocessing as preprocess
 from utilities.utils import read_file
 
-WINDOW_SIZE = 4
-INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNS', 'VBG', 'VBN', 'VBD', 'NNP', 'NNPS']
+WINDOW_SIZE = 2
+INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS'] # 'VBG', 'VBN', 'VBD','NNPS']
 INCLUDE_KEYWORD_POS = ['NN', 'NNS', 'JJ']
 
 
@@ -33,7 +34,6 @@ def get_filtered_postags(word_tag_sequence, filter_tags):
 
 def get_graph_words(text_words):
     """Returns a list of words that fit the filtering criteria"""
-
     graph_words = [word for word, _ in get_filtered_postags(text_words, INCLUDE_GRAPH_POS)]
 
     return graph_words
@@ -93,13 +93,6 @@ def reconstruct_keyphrase(keyphrase_components, hyphenated):
 
     return keyphrase
 
-# def is_valid_keyword(word):
-#     pos_tagged = preprocessor.pos_tokenize([word])
-#     if pos_tagged:
-#         tag = pos_tagged[0][1]
-#         return tag in INCLUDE_KEYWORD_POS
-#     else:
-#         return False
 
 def assign_scores_to_keywords(lemmas, scores, lemmas_to_words):
     """Returns a dictionary with keyword -> score
@@ -113,7 +106,6 @@ def assign_scores_to_keywords(lemmas, scores, lemmas_to_words):
             keywords_with_scores[word] = scores[lemma]
 
     return keywords_with_scores
-
 
 
 def build_graph(chosen_words):
@@ -182,6 +174,7 @@ def sort_keywords(scores):
     :return: The same dictionary, sorted in descending order
     """
     sorted_lemmas = [lemma for lemma in sorted(scores, key=scores.get, reverse=True)]
+
     return sorted_lemmas
 
 
@@ -193,7 +186,7 @@ def get_keywords(text, keyword_count=10):
     """
 
     # Remove all irrelevant words and hyphens, while keeping track of them for later
-    text_words = preprocess.word_tokenize(text)
+    text_words = preprocess.nltk_word_tokenize(text)
     (text_words, hyphenated_text_words) = preprocess.remove_hyphens(text_words)
 
     # Choose the words to go into the graph and begin to construct our graph
@@ -206,25 +199,37 @@ def get_keywords(text, keyword_count=10):
     add_graph_edges(keyword_graph, graph_words, words_to_lemmas)
 
     # Run the pagerank algorithm on the newly constructed graph
-    pagerank_scores = nx.pagerank(keyword_graph)
+    pagerank_scores = nx.pagerank(keyword_graph, weight='weight')
 
     # Make sure our lemma scores get spread to their keywords
     keywords_with_scores = assign_scores_to_keywords(lemmas,
                                                      pagerank_scores,
                                                      lemmas_to_words)
     keywords = sort_keywords(keywords_with_scores)
-    original_sequence = preprocess.simple_tokenize(text)
+
+    original_sequence = preprocess.nltk.word_tokenize(text)
 
     keyphrases_with_scores = get_keyword_combinations(keywords,
                                                       original_sequence,
                                                       keywords_with_scores,
                                                       hyphenated_text_words)
     keyphrases = sort_keywords(keyphrases_with_scores)
+
     return keyphrases[0:keyword_count]
 
 
 def filter_keyphrases():
+    # TODO:
     return 0
+
+
+def get_word_with_rank(scores, word):
+    # TODO:
+    print word + ": " + str(scores[word]);
+
+
+def get_text_counts(words, word):
+    print words.count(word)
 
 
 if __name__ == '__main__':
