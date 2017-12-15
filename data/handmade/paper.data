@@ -1,0 +1,33 @@
+Keywords, consisting of one single word or several words, summarize topics and
+ideas of an article. Keywords can benefit many NLP applications, such as text
+categorization, document clustering, search engine, etc. In an era when information
+on Internet grows explosively, it is intractable to scan every document
+thoroughly. Keywords enable us to find documents we need from the ocean of
+information.
+In order to capture the topics of an article accurately and sufficiently, keywords
+usually need to be assigned by experts with adequate domain knowledge. However,
+with innumerous documents emerging everyday, it would be too costly to
+assign keywords to documents by human efforts. Therefore, automatic keyword
+extraction is drawing interests of many researchers and a number of techniques
+are applied to this task successfully.
+The targets of keyword extraction include news articles, web pages, scientific
+articles, etc. Study of keyword extraction for scientific articles is getting more
+attention recently, since keywords are essential for retrieving scientific articles
+and grasping the trend of academic development. Though keywords are usually
+required for scientific articles and academic dissertations, many authors have
+trouble selecting proper keywords. And different authors will give keywords following
+different criteria.
+For keyword extraction for scientific articles, a shared task was held at the
+Workshop on Semantic Evaluation 2010 (SemEval-2010 Task 5) [1]. It was geared
+towards scientific articles in English. However, research on keyword extraction
+towards scientific articles in Chinese is relatively rare. We extract keywords from
+Chinese scientific articles adopting the framework of selecting keyword candidates
+by Document Frequency Accessor Variety(DF-AV) and running TextRank
+algorithm on a phrase network. We show how to improve the result of unsupervised
+keyword extraction for a certain domain with domain knowledge of known
+keywords.
+The remainder of the paper is organized as follows. Section 2 reviews related
+work. Section 3 describes the general framework for keyword extraction. Section
+4 shows why known keywords can be used as domain knowledge and how to
+improve the result of keyword extraction with domain knowledge. Section 5
+represents our experiment results and Section 6 concludes our work.

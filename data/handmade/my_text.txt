@@ -1,0 +1,5 @@
+are important and bounds may be sufficient. This was the basis of an entire statistical estimation
+ystem using such "antisampling" methods [14].
+9. Bounds (and especially bounds on counts) are essential for analysis of security of statistical
+A
+databases from indirect inferences [5].
