@@ -1,14 +1,15 @@
 import codecs
-import os
 import csv
+import os
+
+import wikipedia
 
 import preprocessing.preprocessing as preprocessor
-import wikipedia
-import cleaner
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 cs = codecs.open(os.path.join(__location__, 'CS_WORDS.txt'), encoding='utf-8')
+
 
 def nips_words():
     nips_location = os.path.join(__location__, 'NIPS_WORDS.csv')
@@ -21,7 +22,7 @@ def nips_words():
     return words
 
 # CS_WORDS = preprocessor.word_tokenize(cs.read())
-NIPS_WORDS = nips_words()
+# NIPS_WORDS = nips_words()
 
 def words_from_page(page):
     asc = to_ascii(page.content)
@@ -46,7 +47,7 @@ def wiki_words(page, depth=1):
         depth -= 1
         for link in links:
             try:
-                print 'Here'
+                print('Here')
                 page = wikipedia.page(link)
                 page_words = wiki_words(page, depth)
                 wiki.extend(page_words)

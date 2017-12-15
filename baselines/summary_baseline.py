@@ -5,13 +5,13 @@ from utilities.utils import read_file
 
 def get_summary(text):
     keywords = get_keywords(text)
-    sentences = preprocess.sentence_tokenize(text)
+    sentences = preprocess.nltk_sentence_tokenize(text)
     sentence_count = len(sentences)/3
 
     canditate_sentences = get_sentences_with_keywords(keywords, sentences)
     sorted_canditate_sentences = sort_sentences(canditate_sentences)
 
-    summary = [sentence for sentence in canditate_sentences.keys() if
+    summary = [sentence for sentence in list(canditate_sentences.keys()) if
                sentence in sorted_canditate_sentences[0:sentence_count]]
 
     return summary
@@ -30,7 +30,7 @@ def get_sentences_with_keywords(keywords, sentences):
         sentence_words = preprocess.nltk_word_tokenize(sentence)
         for word in sentence_words:
             if word in keywords:
-                if sentences_with_keywords.has_key(sentence):
+                if sentence in sentences_with_keywords:
                     sentences_with_keywords[sentence].append(word)
                 else:
                     sentences_with_keywords[sentence] = [word]
@@ -39,9 +39,9 @@ def get_sentences_with_keywords(keywords, sentences):
 
 
 if __name__ == '__main__':
-    FILE_PATH = raw_input('Enter the absolute path of '
+    FILE_PATH = input('Enter the absolute path of '
                           'the file you want to summarize: \n')
     FILE_TEXT = read_file(FILE_PATH)
     summary = get_summary(FILE_TEXT)
     for sentence in summary:
-        print sentence
+        print(sentence)

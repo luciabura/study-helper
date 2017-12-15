@@ -6,9 +6,6 @@ import nltk
 import spacy
 
 import sys
-reload(sys)
-sys.setdefaultencoding("utf-8")
-
 
 LEMMATIZER = WordNetLemmatizer()
 STOP_WORDS = set(stopwords.words('english'))
@@ -35,8 +32,6 @@ def clean_and_format(text):
     :param text: the original text, in ascii or unicode
     :return: unicode formatted text
     """
-    text = text.decode('utf-8')
-    text = unicode(text)
 
     # ensure no '\n' s in text
     lines = text.splitlines()
@@ -61,9 +56,14 @@ def remove_stopwords(tokens):
     return without_stopwords
 
 
-def sentence_tokenize(text):
-    text = clean_and_format(text)
+def nltk_sentence_tokenize(text):
+    # text = clean_and_format(text)
     return nltk.sent_tokenize(text)
+
+def sentence_tokenize(text):
+    doc = NLP(text)
+    sentences = [sent.string.strip() for sent in doc.sents]
+    return sentences
 
 
 def nltk_word_tokenize(text):
@@ -106,7 +106,7 @@ def remove_hyphens(words):
     return words, hyphenated
 
 """Internal functions"""
-RE_SOME_PUNCT = re.compile('[^\w\'.,?]+', re.UNICODE)
+RE_SOME_PUNCT = re.compile('[^\w\'.,?;]+', re.UNICODE)
 RE_ALL_PUNCT = re.compile('[^\w\']+', re.UNICODE)
 
 

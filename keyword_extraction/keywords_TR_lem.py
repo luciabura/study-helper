@@ -3,23 +3,28 @@ import operator
 
 import preprocessing.preprocessing as preprocess
 from utilities.utils import read_file
+
 # from utilities.words import get_cs_words
 
 WINDOW_SIZE = 2
 INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS']
 PUNCTUATION = ['.', '?', ',']
+
+
 # REFERENCE_WORDS = get_cs_words()
 
 
 def get_keyword_combinations(original_tokens, scores):
-    keywords = scores.keys()
-    keyphrases = {}
+    keywords = list(scores.keys())
+    keyphrases_with_scores = {}
+
     j = 0
     for i, _ in enumerate(original_tokens):
         if i < j:
             continue
         if original_tokens[i].lemma_.lower() in keywords:
             keyphrase_components = []
+            keyphrase_tokens = []
             keyphrase_length = 0
             avg_score = 0
 
@@ -32,20 +37,21 @@ def get_keyword_combinations(original_tokens, scores):
 
                 if token_lemma in keywords and token_text not in keyphrase_components:
                     keyphrase_components.append(token_text)
+                    keyphrase_tokens.append(token)
                     avg_score += scores[token_lemma]
                     keyphrase_length += 1
                 else:
                     break
 
             keyphrase = ' '.join(keyphrase_components)
-            keyphrases[keyphrase] = avg_score
+            keyphrases_with_scores[keyphrase] = (avg_score, keyphrase_tokens)
             j = i + len(keyphrase_components)
 
-    return keyphrases
+    return keyphrases_with_scores
 
 
 def sort_scores(scores):
-    sorted_scores = sorted(scores.items(), key=operator.itemgetter(1), reverse=True)
+    sorted_scores = sorted(list(scores.items()), key=lambda x: x[1], reverse=True)
 
     return sorted_scores
 
@@ -86,12 +92,11 @@ def get_graph_tokens(tokens, include_filter):
     return graph_tokens
 
 
-def get_keywords(text, keyword_count=10):
+def get_keyphrases_with_scores(text):
     tokens = preprocess.clean_and_tokenize(text)
     clean_tokens = preprocess.remove_stopwords(tokens)
 
     graph_tokens = get_graph_tokens(clean_tokens, INCLUDE_GRAPH_POS)
-    keyword_count = len(graph_tokens)/3
 
     lemmas = [token.lemma_.lower() for token in graph_tokens]
     graph_words = list(set(lemmas))
@@ -101,14 +106,49 @@ def get_keywords(text, keyword_count=10):
 
     pagerank_scores = nx.pagerank(graph, alpha=0.85, tol=0.0001)
 
-    keyphrases = get_keyword_combinations(tokens, pagerank_scores)
+    keyphrases_with_scores = get_keyword_combinations(tokens, pagerank_scores)
 
-    keyphrases = [keyphrase for keyphrase, _ in sort_scores(keyphrases)]
-    return keyphrases[0:keyword_count]
+    return keyphrases_with_scores
+
+
+def get_keywords(text, keyword_count=10, customize_count=False, trim=True, filter_similar=False):
+    keyphrases_with_scores = get_keyphrases_with_scores(text)
+
+    if customize_count is False:
+        keyword_count = int(len(keyphrases_with_scores) / 3)
+
+    sorted_keyphrases = [keyphrase for keyphrase, _ in sort_scores(keyphrases_with_scores)]
+
+    if filter_similar:
+        return get_filtered_keywords(sorted_keyphrases, keyphrases_with_scores)
+
+    if trim:
+        return sorted_keyphrases[0:keyword_count]
+    else:
+        return sorted_keyphrases
+
+
+def get_filtered_keywords(sorted_keyphrases, keyphrases_with_scores):
+    visited = []
+    keyphrases = []
+    for keyphrase in sorted_keyphrases:
+        keyphrase_tokens = keyphrases_with_scores[keyphrase][1]
+        seen_count = 0
+        for token in keyphrase_tokens:
+            lemma = token.lemma_.lower()
+            if lemma in visited:
+                seen_count += 1
+            else:
+                visited.append(lemma)
+
+        if seen_count < len(keyphrase_tokens):
+            keyphrases.append(keyphrase)
+
+    return keyphrases
 
 
 if __name__ == '__main__':
-    FILE_PATH = raw_input('Enter the absolute path of '
-                          'the file you want to extract the keywords from: \n')
+    FILE_PATH = eval(input('Enter the absolute path of '
+                          'the file you want to extract the keywords from: \n'))
     FILE_TEXT = read_file(FILE_PATH)
-    print get_keywords(FILE_TEXT)
+    print((get_keywords(FILE_TEXT, trim=False, filter_similar=True)))

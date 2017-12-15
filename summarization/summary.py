@@ -16,13 +16,17 @@ from utilities.utils import read_file
 WINDOW_SIZE = 2
 
 
-def get_summary(text):
+def get_summary(text, sentence_num=10):
     keywords = get_keywords(text)
     sentences = preprocess.sentence_tokenize(text)
+    print("Sentence count: " + str(len(sentences)))
     graph = build_graph(sentences)
     add_graph_edges(graph, sentences, keywords)
     pagerank_scores = nx.pagerank(graph)
-    print pagerank_scores
+    sorted_sentences = sorted(pagerank_scores, key=pagerank_scores.get, reverse=True)
+    for sentence in sentences:
+        if sentence in sorted_sentences[0:sentence_num]:
+            print(sentence)
     # for score in pagerank_scores:
     #     print score
 
@@ -36,7 +40,10 @@ def get_similarity(sentence_1, sentence_2):
         if word in s2_words:
             common += 1
 
-    score = common/(math.log(len(s1_words)) + math.log(len(s1_words)))
+    if len(s1_words) and len(s2_words) > 0:
+        score = common/(math.log(len(s1_words)) + math.log(len(s1_words)))
+    else:
+        score = 0
     # print score
     return score
 
@@ -54,6 +61,7 @@ def add_graph_edges(graph, sentences, keywords=[]):
             s2 = sentences[j]
             if graph.has_node(s1) and graph.has_node(s2) and s1 != s2:
                 weight_s1 = weight_s2 = get_similarity(s1, s2)
+                print(weight_s1)
                 # print get_keyphrase_score(s1, keywords=keywords)
                 graph.add_edge(s1, s2, weight=get_similarity(s1, s2))
 
@@ -65,11 +73,10 @@ def get_keyphrase_score(sentence, keywords):
             count += 1
 
     words = sentence.split()
-    if(len(words) > 1):
+    if len(words) > 1:
         return count/math.log(len(words))
     else:
         return count
-
 
 
 def build_graph(chosen_sentences):
@@ -80,7 +87,7 @@ def build_graph(chosen_sentences):
 
 
 if __name__ == '__main__':
-    FILE_PATH = raw_input('Enter the absolute path of '
+    FILE_PATH = input('Enter the absolute path of '
                           'the file you want to summarize: \n')
     FILE_TEXT = read_file(FILE_PATH)
-    print get_summary(FILE_TEXT)
+    print(get_summary(FILE_TEXT, 2))
