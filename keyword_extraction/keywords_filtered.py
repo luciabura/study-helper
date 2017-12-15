@@ -3,6 +3,7 @@ import operator
 
 import preprocessing.preprocessing as preprocess
 from utilities.utils import read_file
+from collections import OrderedDict
 
 # from utilities.words import get_cs_words
 
@@ -29,7 +30,7 @@ def get_keyword_combinations(original_tokens, scores):
             avg_score = 0
 
             for token in original_tokens[i:i + 3]:
-                if token.text in PUNCTUATION:
+                if token.pos_ == 'PUNCT':
                     break
 
                 token_lemma = token.lemma_.lower()
@@ -51,7 +52,7 @@ def get_keyword_combinations(original_tokens, scores):
 
 
 def sort_scores(scores):
-    sorted_scores = sorted(list(scores.items()), key=lambda x: x[1], reverse=True)
+    sorted_scores = OrderedDict(sorted(scores.items(), key=lambda t: t[1], reverse=True))
 
     return sorted_scores
 
@@ -92,8 +93,7 @@ def get_graph_tokens(tokens, include_filter):
     return graph_tokens
 
 
-def get_keyphrases_with_scores(text):
-    tokens = preprocess.clean_and_tokenize(text)
+def get_keywords_with_scores(tokens):
     clean_tokens = preprocess.remove_stopwords(tokens)
 
     graph_tokens = get_graph_tokens(clean_tokens, INCLUDE_GRAPH_POS)
@@ -106,20 +106,28 @@ def get_keyphrases_with_scores(text):
 
     pagerank_scores = nx.pagerank(graph, alpha=0.85, tol=0.0001)
 
-    keyphrases_with_scores = get_keyword_combinations(tokens, pagerank_scores)
+    keywords_with_scores = sort_scores(pagerank_scores)
+
+    return keywords_with_scores
+
+
+def get_keyphrases_with_scores(tokens):
+    keywords_with_scores = get_keywords_with_scores(tokens)
+    keyphrases_with_scores = sort_scores(get_keyword_combinations(tokens, keywords_with_scores))
 
     return keyphrases_with_scores
 
 
-def get_keywords(text, keyword_count=10, customize_count=False, trim=True, filter_similar=False):
-    keyphrases_with_scores = get_keyphrases_with_scores(text)
+def get_keywords(text, keyword_count=10, customize_count=False, trim=True, filter=False):
+    tokens = preprocess.clean_and_tokenize(text)
+    keyphrases_with_scores = get_keyphrases_with_scores(tokens)
 
     if customize_count is False:
         keyword_count = int(len(keyphrases_with_scores) / 3)
 
-    sorted_keyphrases = [keyphrase for keyphrase, _ in sort_scores(keyphrases_with_scores)]
+    sorted_keyphrases = keyphrases_with_scores.keys()
 
-    if filter_similar:
+    if filter:
         return get_filtered_keywords(sorted_keyphrases, keyphrases_with_scores)
 
     if trim:
@@ -151,4 +159,4 @@ if __name__ == '__main__':
     FILE_PATH = input('Enter the absolute path of '
                           'the file you want to extract the keywords from: \n')
     FILE_TEXT = read_file(FILE_PATH)
-    print((get_keywords(FILE_TEXT, trim=False, filter_similar=True)))
+    print(get_keywords(FILE_TEXT, trim=False, filter=True))

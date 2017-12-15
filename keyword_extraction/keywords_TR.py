@@ -107,6 +107,7 @@ def get_keywords(text):
     keyphrases = get_keyword_combinations(original_sequence, pagerank_scores)
     keyphrases = [keyphrase for keyphrase, _ in sort_scores(keyphrases)]
     print(len(graph_words))
+
     return keyphrases[0:keyword_count]
 
 
