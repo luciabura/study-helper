@@ -21,6 +21,8 @@ def clean_and_tokenize(text):
     """
     text = clean_and_format(text)
     tokens = NLP(text)
+    # for token in tokens:
+    #     print(token.text + ": " + token.tag_)
 
     return tokens
 
@@ -61,8 +63,9 @@ def nltk_sentence_tokenize(text):
     return nltk.sent_tokenize(text)
 
 def sentence_tokenize(text):
+    text = clean_and_format(text)
     doc = NLP(text)
-    sentences = [sent.string.strip() for sent in doc.sents]
+    sentences = [sent for sent in doc.sents]
     return sentences
 
 
