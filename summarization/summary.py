@@ -8,48 +8,63 @@ Ideally, we want the summarized sentences to appear
 
 """
 import math
+from collections import OrderedDict
+
 import networkx as nx
+import os
+
 import preprocessing.preprocessing as preprocess
 from keyword_extraction.keywords_filtered import get_keywords_with_scores
-from utilities.utils import read_file
+from utilities.utils import read_file, print_file, print_summary_to_file
 
+IDENTIFIER = '_A'
 WINDOW_SIZE = 2
 
 
-def get_sentences_with_keywords(text, keywords):
+def get_sentences_with_keywords_and_scores(sentences, keywords_with_scores):
+    keywords = list(keywords_with_scores.keys())
 
-    sentences = preprocess.sentence_tokenize(text)
+    graph = build_graph(sentences)
+    add_graph_edges(graph, sentences)
+    pagerank_scores = nx.pagerank(graph)
+
+    print(keywords)
 
     print("Sentence count: " + str(len(sentences)))
 
-    sentences_with_keywords = {}
+    sentences_with_keywords_and_scores = {}
     for sentence in sentences:
-        key_tokens = [token for token in sentence if token.text.lower() in keywords]
+        key_tokens = [token for token in sentence if token.lemma_.lower() in keywords]
         if len(key_tokens) > 0:
-            sentences_with_keywords[sentence] = key_tokens
+            sentences_with_keywords_and_scores[sentence] = (pagerank_scores[sentence], key_tokens)
 
-    return sentences_with_keywords
+    return sentences_with_keywords_and_scores
 
 
-def get_summary(text, sentence_num=10):
+def sort_scores(scores):
+    sorted_scores = OrderedDict(sorted(scores.items(), key=lambda t: t[1], reverse=True))
+
+    return sorted_scores
+
+
+def get_summary(text, sentence_num=None):
     tokens = preprocess.clean_and_tokenize(text)
     keywords_with_scores = get_keywords_with_scores(tokens)
-    keywords = list(keywords_with_scores.keys())
+    sentences = preprocess.sentence_tokenize(text)
+    sentences_with_keywords_and_scores = get_sentences_with_keywords_and_scores(sentences, keywords_with_scores)
 
-    sentences_with_keywords = get_sentences_with_keywords(text, keywords)
-    sentences = list(sentences_with_keywords.keys())
-    graph = build_graph(sentences)
+    sorted_sentences = list(sort_scores(sentences_with_keywords_and_scores))
 
-    add_graph_edges(graph, sentences, keywords)
-    pagerank_scores = nx.pagerank(graph)
+    if sentence_num is None:
+        sentence_num = int(math.sqrt(len(sorted_sentences)))
 
-    sorted_sentences = sorted(pagerank_scores, key=pagerank_scores.get, reverse=True)
-    for sentence in sorted_sentences:
-        print(sentence)
-        print(pagerank_scores[sentence])
+    summary = []
     for sentence in sentences:
         if sentence in sorted_sentences[0:sentence_num]:
-            print(sentence)
+            summary.append(sentence.string.strip())
+
+    summary = '\n'.join(summary)
+    return summary
 
 
 def get_spacy_similarity(sentence_1, sentence_2):
@@ -73,7 +88,7 @@ def get_similarity(sentence_1, sentence_2):
     return score
 
 
-def add_graph_edges(graph, sentences, keywords=[]):
+def add_graph_edges(graph, sentences):
     """
     Adds edge between all words in word sequence that are within WINDOW_SIZE
     of each other. I.e if within WINDOW_SIZE the two words co-occur
@@ -117,6 +132,8 @@ def build_graph(chosen_sentences):
 
 if __name__ == '__main__':
     FILE_PATH = input('Enter the absolute path of '
-                          'the file you want to summarize: \n')
+                      'the file you want to summarize: \n')
+    OUTPUT_DIR = input('Directory to put summary in: \n')
     FILE_TEXT = read_file(FILE_PATH)
-    print(get_summary(FILE_TEXT, 4))
+    # print(get_summary(FILE_TEXT))
+    print_summary_to_file(get_summary, FILE_PATH, OUTPUT_DIR, IDENTIFIER)

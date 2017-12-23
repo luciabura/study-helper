@@ -1,30 +1,19 @@
-import codecs
-
 from gensim.summarization import summarize
 
 from preprocessing import preprocessing as preprocess
-from utilities.utils import read_file
+from utilities.utils import print_summary_to_file
+
+IDENTIFIER = '_B'
 
 
-def get_summary(text, sentence_num=10):
+def get_summary(text):
     text = preprocess.clean_and_format(text)
     return summarize(text)
-
-
-def print_to_file(lines, filename):
-    file = codecs.open(filename, 'w')
-    print(lines, file=file)
 
 
 if __name__ == '__main__':
     FILE_PATH = input('Enter the absolute path of '
                           'the file you want to summarize: \n')
-    FILE_TEXT = read_file(FILE_PATH)
-    summary = get_summary(FILE_TEXT)
+    OUTPUT_DIR = input('Where do you want it?')
 
-    path = FILE_PATH.split('.')
-    path.pop()
-    path.append('summ')
-    OUTPUT_FILE_PATH = '.'.join(path)
-
-    print_to_file(summary, OUTPUT_FILE_PATH)
+    print_summary_to_file(get_summary, FILE_PATH, OUTPUT_DIR, IDENTIFIER)

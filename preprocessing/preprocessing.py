@@ -10,7 +10,8 @@ import sys
 LEMMATIZER = WordNetLemmatizer()
 STOP_WORDS = set(stopwords.words('english'))
 
-NLP = spacy.load('en')
+NLP = spacy.load('en_core_web_md')
+# NLP = spacy.load('en_core_web_sm')
 
 
 def clean_and_tokenize(text):
@@ -61,6 +62,7 @@ def remove_stopwords(tokens):
 def nltk_sentence_tokenize(text):
     # text = clean_and_format(text)
     return nltk.sent_tokenize(text)
+
 
 def sentence_tokenize(text):
     text = clean_and_format(text)
