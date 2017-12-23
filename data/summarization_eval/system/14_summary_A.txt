@@ -1,0 +1,3 @@
+During most of the cell cycle these are organized in a DNA protein complex known as chromatin, and during cell division the chromatin can be seen to form the well defined chromosomes familiar from a karyotype.
+In some cases where a cytoplasmic process needs to be restricted, a key participant is removed to the nucleus, where it interacts with transcription factors to downregulate the production of certain enzymes in the pathway.
+Since the nucleus is the site of transcription, it also contains a variety of proteins which either directly mediate transcription or are involved in regulating the process.

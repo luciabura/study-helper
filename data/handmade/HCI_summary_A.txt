@@ -1,0 +1,4 @@
+A user centred design process, as taught in earlier years of the tripos and experienced in many group design projects, provides a professional approach to creating software with functionality that users need.
+Architects and product designers need a thorough technical grasp of the materials they work with, but the success of their work depends on the creative application of this technical knowledge.
+A computer science course does not provide sufficient time for this kind of training in creative design, but it can provide the essential elements an understanding of the user s needs, and an understanding of potential solutions.
+In professional work, the most important attributes for HCI experts are to be both creative and practical, placing design at the centre of the field.
