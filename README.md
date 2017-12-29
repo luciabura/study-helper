@@ -13,7 +13,7 @@ in the project proposal under: ```study-helper/documents/proposal.pdf```
 **Key-phrase extraction step**
 
 Implemented within ``study-helper/keyword_extraction`` package, 
-following an unsupervised graph-based learning model outlined by M. Heilman in his paper: [TextRank: Bringing Order into Texts](https://web.eecs.umich.edu/~mihalcea/papers/mihalcea.emnlp04.pdf)
+following an unsupervised graph-based learning model outlined by Radu Mihalcea and Paul Tarau in his paper: [TextRank: Bringing Order into Texts](https://web.eecs.umich.edu/~mihalcea/papers/mihalcea.emnlp04.pdf)
 
 **Sentence extraction step** (summarization)
 [TBD]
