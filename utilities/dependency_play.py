@@ -73,7 +73,7 @@ def extract_appositives(sentence):
     matches = APPOS(sentence)
 
     for ent_id, start, end in matches:
-        span = apo[start:end]
+        span = sentence[start:end]
         # First token is our noun_phrase_0
         np_0 = span[0]
         print(np_0)
@@ -106,13 +106,24 @@ if __name__ == '__main__':
     HCI experts are to be both creative and practical, placing design at the centre of the field.')
 
 
-    sentences = [sent for sent in doc.sents]
+    tr, = get_stanford_tree(doc2)
+    tr.pretty_print()
 
-    initialize_matchers()
+    print(tr[0, 0])
+    print(tr[0, 1])
 
-    apo = NLP('The magical Sam, my crazy brother from Ohio, eats red meat.')
-    subordinate = NLP('As John slept, I studied.')
-    subordinate_2 = NLP('The accident happened as the night was falling.')
+    tr[0, 1], tr[0, 0] = tr[0, 0], tr[0, 1]
+    print(tr)
+
+    tr.pretty_print()
+    # sentences = [sent for sent in doc.sents]
+    #
+    # initialize_matchers()
+    #
+    # apo = NLP('The magical Sam, my crazy brother from Ohio, eats red meat.')
+    # subordinate = NLP('As John slept, I studied.')
+    # subordinate_2 = NLP('The accident happened as the night was falling.')
+
     # APPOS.add("Appositive", None, [{DEP: 'appos'}])
     # matches = APPOS(apo)
 
