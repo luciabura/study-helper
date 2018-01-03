@@ -1,7 +1,7 @@
 from keyword_extraction import keywords
 from keyword_extraction import keywords_TR_lem
 
-from preprocessing.preprocessing import NLP
+from text_processing.preprocessing import NLP
 
 
 def test_build_lemmas():

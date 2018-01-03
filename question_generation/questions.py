@@ -468,22 +468,18 @@ def generate_questions_trial():
 
     initialize_patterns()
     sentences = [sent.as_doc() for sent in text_as_doc.sents]
-    all_questions = []
+    all_questions = set([])
     for sentence in sentences:
         simplified_sentences = simplifier.simplify_sentence(sentence)
         for s in simplified_sentences:
-            print(s)
             matches = MATCHER(s)
             for ent_id, start, end in matches:
                 match = Match(ent_id, start, end, s)
                 pattern_name = NLP.vocab.strings[ent_id]
-                print(pattern_name)
                 questions = handle_match(pattern_name)(match)
                 if questions:
-                    all_questions.extend(questions)
-
-        print('')
-        break
+                    for question in questions:
+                        all_questions.add(question)
 
     for question in all_questions:
         print(question)
