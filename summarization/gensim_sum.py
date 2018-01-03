@@ -1,7 +1,7 @@
 from gensim.summarization import summarize
 
-from preprocessing import preprocessing as preprocess
-from utilities.utils import print_summary_to_file
+from text_processing import preprocessing as preprocess
+from utilities.read_write import print_summary_to_file
 
 IDENTIFIER = '_B'
 

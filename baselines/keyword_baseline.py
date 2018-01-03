@@ -9,8 +9,8 @@ key concepts when appearing within a scientific paper or teaching material.
 """
 from nltk import FreqDist
 
-from preprocessing.preprocessing import nltk_word_tokenize
-from utilities.utils import read_file
+from text_processing.preprocessing import nltk_word_tokenize
+from utilities.read_write import read_file
 
 
 def get_keywords(file_text, word_count=1):

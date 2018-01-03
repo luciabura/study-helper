@@ -4,7 +4,7 @@ import os
 
 import wikipedia
 
-import preprocessing.preprocessing as preprocessor
+import text_processing.preprocessing as preprocessor
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))

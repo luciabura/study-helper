@@ -1,17 +1,13 @@
+import re
+
+import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-import re
-import nltk
-import spacy
-
-import sys
+from utilities import NLP
 
 LEMMATIZER = WordNetLemmatizer()
 STOP_WORDS = set(stopwords.words('english'))
-
-NLP = spacy.load('en_core_web_md')
-# NLP = spacy.load('en_core_web_sm')
 
 
 def clean_and_tokenize(text):
@@ -21,11 +17,9 @@ def clean_and_tokenize(text):
     spacy's tokenization
     """
     text = clean_and_format(text)
-    tokens = NLP(text)
-    # for token in tokens:
-    #     print(token.text + ": " + token.tag_)
+    text_as_doc = NLP(text)
 
-    return tokens
+    return text_as_doc
 
 
 def clean_and_format(text):

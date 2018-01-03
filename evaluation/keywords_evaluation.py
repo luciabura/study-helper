@@ -4,8 +4,8 @@ from keyword_extraction.keywords_TR import get_keywords as get_graph_keywords_2
 from keyword_extraction.keywords_TR_lem import get_keywords as get_graph_keywords_3
 from keyword_extraction.keywords_filtered import get_keywords as get_graph_keywords_4
 from nltk.metrics.scores import f_measure, precision, recall
-from utilities.utils import read_file
-from preprocessing.preprocessing import clean_and_tokenize
+from utilities.read_write import read_file
+from text_processing.preprocessing import clean_and_tokenize
 from gensim.summarization import keywords as gensim_keywords
 
 

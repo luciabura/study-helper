@@ -1,20 +1,15 @@
-import re
-
 import os
-import spacy
-import sys
+from queue import Queue
 
-from nltk import Tree
 from nltk.parse.stanford import StanfordParser
 from spacy import displacy
-from spacy.attrs import DEP, POS, TAG, ORTH
 from spacy.matcher import Matcher
 
-from question_generation.questions import Match, extract_noun_phrase, get_verb_phrase, is_past_tense, ANY_ALPHA, \
-    INFINITY, \
-    is_valid_sentence, OP, ANY
-
 from neuralcoref import Coref
+from question_generation import *
+from text_processing.grammar import extract_noun_phrase, is_valid_sentence, is_past_tense
+from utilities import INFINITY, NLP
+
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -24,7 +19,8 @@ model_path = os.path.join(__location__, "stanford_parser/stanford-parser-models.
 
 PARSER = StanfordParser(model_path=parser_path, path_to_jar=jar_path, path_to_models_jar=model_path)
 
-NLP = spacy.load('en_core_web_md')
+MATCHER = Matcher(NLP.vocab)
+
 REL_PRONS_REM = ['which', 'who']
 REL_PRON_ADD = ['where', 'when', 'what']
 
@@ -46,6 +42,86 @@ def find_parent_verb(token, depth=1):
         if depth > 0:
             depth -= 1
         return find_parent_verb(token.head, depth)
+
+
+def get_verb_correct_tense(dependant_noun_phrase, dependant_verb, verb_lemma=''):
+    past_tense = is_past_tense(dependant_verb)
+    if verb_lemma == 'be':
+        if any(is_plural(tok) for tok in dependant_noun_phrase):
+            if past_tense:
+                verb = 'were'
+            else:
+                verb = u'are'
+        else:
+            if past_tense:
+                verb = 'was'
+            else:
+                verb = u'is'
+        return verb
+    else:
+        return None
+
+
+def post_process(sentence):
+    """TODO:implement"""
+    pass
+
+
+def remove_spans(sentence, spans):
+    sentence_text = []
+    for tok in sentence:
+        if any(tok in span for span in spans):
+            continue
+        sentence_text.append(tok.text)
+    sentence = NLP(' '.join(sentence_text))
+    return sentence
+
+
+def get_subtree_span(token, sentence):
+    start_index = INFINITY
+    end_index = -1
+    for child in token.subtree:
+        if start_index > child.i:
+            start_index = child.i
+
+        if end_index < child.i:
+            end_index = child.i
+
+    return sentence[start_index: (end_index + 1)]
+
+
+def extract_conjoined_subjects(match):
+    subj_1 = match.get_first_token()
+
+    return []
+
+
+def extract_subordinate(sentence):
+    for tok in sentence:
+        if tok.dep_ == 'advcl':
+            for sub in tok.subtree:
+                print(sub)
+
+
+def extract_conjugate_sentences(match):
+    sentences = []
+    sentence = match.get_sentence()
+    root_verb = match.span.root
+    conj_verb = match.get_last_token()
+    conj = match.get_tokens_by_dependency('cc')
+
+    if conj_verb.head != root_verb:
+        return sentence
+
+    conj_subtree = get_subtree_span(conj_verb, sentence)
+
+    conj_sent = NLP(' '.join([tok.text for tok in conj_subtree]))
+    root_sent = remove_spans(sentence, [conj_subtree, conj])
+
+    sentences.append(conj_sent)
+    sentences.append(root_sent)
+
+    return sentences
 
 
 def appositive_sentence(appos, sentence):
@@ -70,68 +146,8 @@ def appositive_sentence(appos, sentence):
     return sentence, appositive_np
 
 
-NLP = spacy.load('en_core_web_md')
-MATCHER = Matcher(NLP.vocab)
-
-
-def post_process(sentence):
-    pass
-
-
-def remove_spans(sentence, spans):
-    sentence_text = []
-    for tok in sentence:
-        if any(tok in span for span in spans):
-            continue
-        sentence_text.append(tok.text)
-    sentence = NLP(' '.join(sentence_text))
-    return sentence
-
-
-def extract_subordinate(sentence):
-    for tok in sentence:
-        if tok.dep_ == 'advcl':
-            for sub in tok.subtree:
-                print(sub)
-
-
-def get_subtree_span(token, sentence):
-    start_index = INFINITY
-    end_index = -1
-    for child in token.subtree:
-        if start_index > child.i:
-            start_index = child.i
-
-        if end_index < child.i:
-            end_index = child.i
-
-    return sentence[start_index: (end_index + 1)]
-
-
-def extract_conjoined_subjects(match):
-    subj_1 = match.get_first_token()
-
-    return
-
-
-def extract_conjugate_sentences(match):
-    sentence = match.get_sentence()
-    root_verb = match.span.root
-    conj_verb = match.get_last_token()
-    conj = match.get_tokens_by_dependency('cc')
-
-    if conj_verb.head != root_verb:
-        return sentence
-
-    conj_subtree = get_subtree_span(conj_verb, sentence)
-
-    conj_sent = NLP(' '.join([tok.text for tok in conj_subtree]))
-    root_sent = remove_spans(sentence, [conj_subtree, conj])
-
-    return root_sent, conj_sent
-
-
 def extract_appositives(match):
+    sentences = []
     sentence = match.get_sentence()
 
     appos = match.get_tokens_by_dependency('appos')[0]
@@ -139,7 +155,31 @@ def extract_appositives(match):
     appositive_sent, appositive_np = appositive_sentence(appos, sentence)
 
     sentence = remove_spans(sentence, [appositive_np])
-    return sentence, appositive_sent
+    sentences.append(sentence)
+    sentences.append(appositive_sent)
+
+    return sentences
+
+
+def extract_adjectival_modifier(match):
+    _sentences = []
+    sentence = match.get_sentence()
+    subject = match.get_first_token()
+    adj_mod = match.get_last_token()
+
+    adj_mod_np = extract_noun_phrase(adj_mod, sentence)
+    subject_np = extract_noun_phrase(subject, sentence, exclude_span=adj_mod_np)
+
+    verb = get_verb_correct_tense(dependant_noun_phrase=subject_np, dependant_verb=adj_mod, verb_lemma='be')
+
+    adj_sent = [tok.text for tok in subject_np]
+    adj_sent.extend([verb])
+    adj_sent.extend([tok.text for tok in adj_mod_np])
+
+    adj_sent = NLP(' '.join(adj_sent))
+    _sentences.append(adj_sent)
+
+    return _sentences
 
 
 def initialize_matchers():
@@ -167,36 +207,12 @@ def initialize_matchers():
     MATCHER.add("PUNCT", None, commas)
     MATCHER.add("PUNCT", None, parenthesis)
     MATCHER.add("ACL", None, adjectival_modifier)
-    MATCHER.add("TP", None, test_pattern)
-
-
-def extract_adjectival_modifier(match):
-    sentences = []
-    sentence = match.get_sentence()
-    subject = match.get_first_token()
-    adj_mod = match.get_last_token()
-
-    adj_mod_np = extract_noun_phrase(adj_mod, sentence)
-    subject_np = extract_noun_phrase(subject, sentence, exclude_span=adj_mod_np)
-
-    verb = get_verb_correct_tense(dependant_noun_phrase=subject_np, dependant_verb=adj_mod, verb_lemma='be')
-
-    sentences.append(sentence)
-
-    adj_sent = [tok.text for tok in subject_np]
-    adj_sent.extend([verb])
-    adj_sent.extend([tok.text for tok in adj_mod_np])
-
-    adj_sent = NLP(' '.join(adj_sent))
-    sentences.append(adj_sent)
-
-    return sentences
+    # MATCHER.add("TP", None, test_pattern)
 
 
 def extract_from_punct(match):
     sents = []
     sentence = match.get_sentence()
-    sents.append(sentence)
 
     punct_span = sentence[match.get_first_token().i + 1: match.get_last_token().i]
     first_after_punct = punct_span[0]
@@ -234,24 +250,6 @@ def extract_from_punct(match):
         sents.append(sentence)
 
     return sents
-
-
-def get_verb_correct_tense(dependant_noun_phrase, dependant_verb, verb_lemma=''):
-    past_tense = is_past_tense(dependant_verb)
-    if verb_lemma == 'be':
-        if any(is_plural(tok) for tok in dependant_noun_phrase):
-            if past_tense:
-                verb = 'were'
-            else:
-                verb = u'are'
-        else:
-            if past_tense:
-                verb = 'was'
-            else:
-                verb = u'is'
-        return verb
-    else:
-        return None
 
 
 def TP(match):
@@ -299,32 +297,41 @@ def sentences():
 
     # show_dependencies(t18)
     # print([(tok.dep_, tok.pos_) for tok in t10])
-    simplify_sentence(t16, {})
+    simplify_sentence(t13)
     # coref(t11)
 
 
-def simplify_sentence(sentence, coreferences):
+def simplify_sentence(sentence, coreferences={}):
     """The main idea is the following:
     1. Check is anything is in coreferences and resolve the sentence
     2. Run matcher against sentence and extract sentences appropriately -> consider case """
 
     initialize_matchers()
+    sentences_ = set([])
 
-    matches = MATCHER(sentence)
-    print(sentence)
+    queue = Queue()
+    queue.put(sentence)
+    while not queue.empty():
+        sent = queue.get()
+        matches = MATCHER(sent)
 
-    for ent_id, start, end in matches:
-        match = Match(ent_id, start, end, sentence)
-        pattern_name = NLP.vocab.strings[ent_id]
-        print(pattern_name)
-        simplified_sentences = handle_match(pattern_name)(match)
-        for sentence in simplified_sentences:
-            print(sentence)
+        sentences_.add(sent)
 
+        for ent_id, start, end in matches:
+            match = Match(ent_id, start, end, sent)
+            pattern_name = NLP.vocab.strings[ent_id]
+            # print(pattern_name)
+            simplified_sentences = handle_match(pattern_name)(match)
+            for s in simplified_sentences:
+                sentences_.add(s)
+                queue.put(s)
 
-def coref(text):
-    text = u"John and Mary paint. They both like pie."
-    text = u"My sister has a dog. She loves that dog."
+    return sentences_
+    
+
+def get_coreferences(text):
+    # text = u"John and Mary paint. They both like pie."
+    # text = u"My sister has a dog. She loves that dog."
     coref = Coref(nlp=NLP)
 
     # clusters = coref.one_shot_coref(utterances=u"My sister has a dog. She loves that dog.")
@@ -343,13 +350,15 @@ def coref(text):
     coreferences = coref.get_most_representative()
     print(coreferences)
 
+    return coreferences, resolved_utterance_text
+
 
 def show_dependencies(sentence, port=5000):
     displacy.serve(sentence, style='dep', port=port)
 
 
-if __name__ == '__main__':
-    sentences()
-
+# if __name__ == '__main__':
+#     sentences()
+#
 
 

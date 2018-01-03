@@ -13,9 +13,9 @@ from collections import OrderedDict
 import networkx as nx
 import os
 
-import preprocessing.preprocessing as preprocess
+import text_processing.preprocessing as preprocess
 from keyword_extraction.keywords_filtered import get_keywords_with_scores
-from utilities.utils import read_file, print_file, print_summary_to_file
+from utilities.read_write import read_file, print_to_file, print_summary_to_file
 
 IDENTIFIER = '_A'
 WINDOW_SIZE = 2

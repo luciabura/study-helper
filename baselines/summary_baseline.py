@@ -1,6 +1,6 @@
-import preprocessing.preprocessing as preprocess
+import text_processing.preprocessing as preprocess
 from keyword_extraction.keywords import get_keywords
-from utilities.utils import read_file
+from utilities.read_write import read_file
 
 
 def get_summary(text):

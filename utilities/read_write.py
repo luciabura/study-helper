@@ -10,10 +10,9 @@ def read_file(path):
     return FILE_TEXT
 
 
-def print_file(content, path):
-    OUTPUT_FILE_PATH = path
-    FILE = open(OUTPUT_FILE_PATH, "w")
-    print(content, file=FILE)
+def print_to_file(content, path):
+    file = open(path, "w")
+    print(content, file=file)
 
 
 def print_summary_to_file(summarizer, input_path, output_dir, identifier=''):
@@ -33,5 +32,5 @@ def print_summary_to_file(summarizer, input_path, output_dir, identifier=''):
 
     output_file_path = os.path.join(output_dir, output_file_name)
 
-    print_file(summary, output_file_path)
+    print_to_file(summary, output_file_path)
     print('Printed to: ' + str(output_file_path))

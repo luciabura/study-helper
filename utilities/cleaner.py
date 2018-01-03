@@ -1,8 +1,8 @@
 import codecs
-from utilities.utils import read_file
+from utilities.read_write import read_file
 from autocorrect import spell
 import glob, os
-import preprocessing.preprocessing as preprocessor
+import text_processing.preprocessing as preprocessor
 
 
 def clean_files(ref_name, text_words, ref_ngrams):

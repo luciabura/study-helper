@@ -1,28 +1,19 @@
-import math
 from collections import OrderedDict
 
-import spacy
 from spacy import displacy
-from spacy.attrs import DEP, POS, IS_ALPHA, ORTH
 from spacy.matcher import Matcher
 
+import question_generation.sentence_simplifier as simplifier
 from keyword_extraction.keywords_filtered import get_keywords_with_scores
-from preprocessing import preprocessing as preprocess
+from question_generation import *
 from summarization.summary import get_sentences_with_keywords_and_scores
-
-NLP = spacy.load('en_core_web_md')
-INFINITY = math.inf
-
-ATTR = Matcher(NLP.vocab)
-DOBJ = Matcher(NLP.vocab)
-AGENT = Matcher(NLP.vocab)
-POBJ = Matcher(NLP.vocab)
+from text_processing import preprocessing as preprocess
+from text_processing.grammar import has_pronouns, extract_noun_phrase, get_verb_phrase, is_past_tense
+from text_processing.preprocessing import clean_and_format
+from utilities import NLP
+from utilities.read_write import read_file
 
 MATCHER = Matcher(NLP.vocab)
-
-OP = 'OP'
-ANY_ALPHA = {IS_ALPHA: True, OP: "*"}
-ANY = {ORTH: '', OP: '*'}
 
 WHO_ENTS = ['PERSON', 'NORP']
 WHEN_ENTS = ['DATE']
@@ -30,26 +21,6 @@ WHERE_ENTS = ['LOCATION', 'FACILITY', 'ORG', 'LOC', 'GPE']
 HOW_MUCH_ENTS = ['MONEY', 'PERCENT']
 WHEN_PREPS = ['before', 'after', 'since', 'until', 'when']
 WHERE_PREPS = ['to', 'on', 'at', 'over', 'in', 'behind', 'above', 'below', 'from', 'inside', 'outside']
-
-
-class Match:
-    def __init__(self, ent_id, start_match, end_match, sentence):
-        self.sentence = sentence
-        self.ent_id = ent_id
-        self.span = sentence[start_match:end_match]
-        self.length = end_match - start_match
-
-    def get_first_token(self):
-        return self.span[0]
-
-    def get_last_token(self):
-        return self.span[-1]
-
-    def get_sentence(self):
-        return self.sentence
-
-    def get_tokens_by_dependency(self, dependency):
-        return [tok for tok in self.span if tok.dep_ == dependency]
 
 
 def choose_wh_word(span):
@@ -275,7 +246,6 @@ def generate_agent_questions(match):
 
     return questions
 
-
 # def make_questions(sentence, wh_word, subj, verb, obj, preposition=None):
 #     questions = []
 #     verb_form_with_subject = prepare_question_verb(verb, sentence, includes_subject=True)
@@ -304,6 +274,7 @@ def generate_agent_questions(match):
 #     question = ' '.join(question)
 #     question += '?'
 #     questions.append(question)
+
 
 def generate_attribute_questions(match):
     """Gets a match object for the attribute pattern. Returns a list of questions"""
@@ -404,8 +375,8 @@ def generate_dobj_questions(match):
 
 def generate_questions(text):
     # The protocol for getting sentences with corresponding scores and keywords
-    tokens = preprocess.clean_and_tokenize(text)
-    keywords_with_scores = get_keywords_with_scores(tokens)
+    text_as_doc = preprocess.clean_and_tokenize(text)
+    keywords_with_scores = get_keywords_with_scores(text_as_doc)
     sentences = preprocess.sentence_tokenize(text)
     sentences_with_keywords_and_scores = get_sentences_with_keywords_and_scores(sentences, keywords_with_scores)
 
@@ -421,14 +392,6 @@ def generate_questions(text):
         # break
 
 
-def has_pronouns(span):
-    for word in span:
-        if word.tag_ == 'PRP' or word.tag_ == 'PRP$':
-            return True
-
-    return False
-
-
 def get_coreference(pronoun):
     """Implement if time -> pronoun get document coreference with neuralcoref"""
     return 0
@@ -436,55 +399,6 @@ def get_coreference(pronoun):
 
 def show_dependencies(sentence, port=5000):
     displacy.serve(sentence, style='dep', port=port)
-
-
-def extract_noun_phrase(token, sentence, exclude_span=None):
-    start_index = INFINITY
-    end_index = -1
-
-    for child in token.subtree:
-        """This will fail in some cases, might want to try to just get full subtree, but then need to pay attention 
-        what we call it on. For now, I'm going to call it only on subjects and object so should be OK to get subtree"""
-        if exclude_span and child in exclude_span:
-            continue
-        # if child.dep_.endswith("mod") \
-        #         or child.dep_ == "compound" \
-        #         or child == token \
-        #         or child.dep_ == "poss" \
-        #         or child.dep_ == "case":
-
-        if start_index > child.i:
-            start_index = child.i
-
-        if end_index < child.i:
-            end_index = child.i
-
-    return sentence[start_index: (end_index + 1)]
-
-
-def get_verb_phrase(token, sentence):
-    start_index = INFINITY
-    end_index = -1
-    for child in token.subtree:
-        if (child.dep_.startswith("aux") and child.head == token) \
-                or (child.dep_ == 'neg' and child.head == token) \
-                or child == token:
-            if start_index > child.i:
-                start_index = child.i
-
-            if end_index < child.i:
-                end_index = child.i
-
-    return sentence[start_index: (end_index + 1)]
-
-
-def is_valid_sentence(sentence):
-    """
-
-    :param sentence:
-    :return:
-    """
-    return True
 
 
 def trial_sentences():
@@ -500,8 +414,10 @@ def trial_sentences():
     doc8 = NLP(u'The handle should be attached before the mantle.')
     doc9 = NLP(u'The United States is a terrible place to go to.')
     doc10 = NLP(u'From outside to inside, the chip contains several layers of complex intertwined transistors.')
-    text_4 = NLP(u'A router is a networking device that forwards data packets between computer networks and a house is a living space.')
-    d = NLP(u'A user centred design process provides a professional approach to creating software with functionality that users need.')
+    text_4 = NLP(
+        u'A router is a networking device that forwards data packets between computer networks and a house is a living space.')
+    d = NLP(
+        u'A user centred design process provides a professional approach to creating software with functionality that users need.')
 
     text = NLP(u"Apple's logo was designed by Steve Jobs in early december 2006 in front of the Empire State Building.")
 
@@ -510,10 +426,6 @@ def trial_sentences():
     #     print(nc)
 
     # print(get_phrase(text[7]))
-
-
-def is_past_tense(token):
-    return token.tag_ == 'VBD' or token.tag_ == 'VBN'
 
 
 def generate_q():
@@ -547,6 +459,36 @@ def generate_q():
         print(question)
 
 
+def generate_questions_trial():
+    text = read_file(input('Filepath: '))
+    text = clean_and_format(text)
+    # coreferences, resolved = get_coreferences(text)
+
+    text_as_doc = preprocess.clean_and_tokenize(text)
+
+    initialize_patterns()
+    sentences = [sent.as_doc() for sent in text_as_doc.sents]
+    all_questions = []
+    for sentence in sentences:
+        simplified_sentences = simplifier.simplify_sentence(sentence)
+        for s in simplified_sentences:
+            print(s)
+            matches = MATCHER(s)
+            for ent_id, start, end in matches:
+                match = Match(ent_id, start, end, s)
+                pattern_name = NLP.vocab.strings[ent_id]
+                print(pattern_name)
+                questions = handle_match(pattern_name)(match)
+                if questions:
+                    all_questions.extend(questions)
+
+        print('')
+        break
+
+    for question in all_questions:
+        print(question)
+
+
 # Switch statement, sort of
 pattern_to_question = {
     "ATTR": lambda match: generate_attribute_questions(match),
@@ -565,6 +507,6 @@ if __name__ == '__main__':
     # doc = NLP(u'Computer Science is the study of both practical and theoretical approaches to computers. A computer scientist specializes in the theory of computation.')
     # sentences = list(doc.sents)
     # show_dependencies(sentences[1].as_doc(), port=5001)
-    generate_q()
+    # generate_q()
     # trial_sentences()
-
+    generate_questions_trial()

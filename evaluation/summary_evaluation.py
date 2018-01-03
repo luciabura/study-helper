@@ -6,7 +6,7 @@ from sumeval.metrics.rouge import RougeCalculator
 
 from data import DATA_DIR
 from summarization import gensim_sum, summary
-from utilities.utils import read_file, print_file, print_summary_to_file
+from utilities.read_write import read_file, print_to_file, print_summary_to_file
 
 SUMM_DIR = os.path.join(DATA_DIR, 'summarization_eval')
 SUMM_BODY = os.path.join(SUMM_DIR, 'body')
@@ -36,7 +36,7 @@ def evaluate_summaries(summarizer_identifier):
 
         result = get_evaluation_scores(system_summary, reference_summary)
         output_path = os.path.join(SUMM_SCORES, file.replace('summary', '_scores'))
-        print_file(result, output_path)
+        print_to_file(result, output_path)
 
 
 def prepare_for_eval(summary):

@@ -1,8 +1,7 @@
 import networkx as nx
-import operator
 
-import preprocessing.preprocessing as preprocess
-from utilities.utils import read_file
+import text_processing.preprocessing as preprocess
+from utilities.read_write import read_file
 
 # from utilities.words import get_cs_words
 

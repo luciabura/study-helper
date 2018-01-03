@@ -29,8 +29,8 @@ def show_tree(sent):
 
 def find_root(sentence):
     for tok in sentence:
-        if tok.dep_ == 'root':
-            return (tok)
+        if tok.dep_ == 'ROOT':
+            return tok
 
 
 def get_stanford_tree(sentence):
@@ -104,7 +104,6 @@ if __name__ == '__main__':
     doc7 = NLP('A computer science course does not provide sufficient time for this kind of training in creative design, but it can provide the essential elements: an understanding of the user s needs, and an understanding of potential solutions.')
     doc6 = NLP('In professional work, the most important attributes for \
     HCI experts are to be both creative and practical, placing design at the centre of the field.')
-
 
     tr, = get_stanford_tree(doc2)
     tr.pretty_print()

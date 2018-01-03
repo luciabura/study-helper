@@ -12,8 +12,8 @@ TODO: Make sure description is accurate
 """
 import networkx as nx
 
-import preprocessing.preprocessing as preprocess
-from utilities.utils import read_file
+import text_processing.preprocessing as preprocess
+from utilities.read_write import read_file
 
 WINDOW_SIZE = 2
 INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS'] # 'VBG', 'VBN', 'VBD','NNPS']
