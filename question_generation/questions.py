@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 import spacy
 from spacy import displacy
-from spacy.attrs import DEP, POS, IS_ALPHA
+from spacy.attrs import DEP, POS, IS_ALPHA, ORTH
 from spacy.matcher import Matcher
 
 from keyword_extraction.keywords_filtered import get_keywords_with_scores
@@ -21,13 +21,14 @@ POBJ = Matcher(NLP.vocab)
 MATCHER = Matcher(NLP.vocab)
 
 OP = 'OP'
-ANY = {IS_ALPHA: True, OP: "*"}
+ANY_ALPHA = {IS_ALPHA: True, OP: "*"}
+ANY = {ORTH: '', OP: '*'}
 
 WHO_ENTS = ['PERSON', 'NORP']
 WHEN_ENTS = ['DATE']
 WHERE_ENTS = ['LOCATION', 'FACILITY', 'ORG', 'LOC', 'GPE']
 HOW_MUCH_ENTS = ['MONEY', 'PERCENT']
-WHEN_PREPS = ['before', 'after', 'since', 'until']
+WHEN_PREPS = ['before', 'after', 'since', 'until', 'when']
 WHERE_PREPS = ['to', 'on', 'at', 'over', 'in', 'behind', 'above', 'below', 'from', 'inside', 'outside']
 
 
@@ -81,19 +82,19 @@ def choose_wh_word(span):
 
 def initialize_patterns():
     # This will match wrongly on is created, was made etc
-    attribute_1 = [{DEP: 'nsubj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}, ANY, {DEP: 'attr'}]
-    attribute_2 = [{DEP: 'nsubjpass'}, ANY, {POS: 'VERB', DEP: 'ROOT'}, ANY, {DEP: 'attr'}]
+    attribute_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'attr'}]
+    attribute_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'attr'}]
 
-    direct_object_1 = [{DEP: 'nsubj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}, ANY, {DEP: 'dobj'}]
-    direct_object_2 = [{DEP: 'nsubjpass'}, ANY, {POS: 'VERB', DEP: 'ROOT'}, ANY, {DEP: 'dobj'}]
+    direct_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'}]
+    direct_object_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'}]
 
-    prep_object_1 = [{DEP: 'nsubj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}, ANY, {DEP: 'prep'},
-                     ANY, {DEP: 'pobj'}]
-    prep_object_2 = [{DEP: 'nsubjpass'}, ANY, {POS: 'VERB', DEP: 'ROOT'}, ANY, {DEP: 'prep'},
-                     ANY, {DEP: 'pobj'}]
+    prep_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'prep'},
+                     ANY_ALPHA, {DEP: 'pobj'}]
+    prep_object_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'prep'},
+                     ANY_ALPHA, {DEP: 'pobj'}]
 
-    agent_1 = [{DEP: 'nsubj'}, {POS: 'VERB', DEP: 'ROOT'}, ANY, {DEP: 'agent'}, ANY, {DEP: 'pobj'}]
-    agent_2 = [{DEP: 'nsubjpass'}, {POS: 'VERB', DEP: 'ROOT'}, ANY, {DEP: 'agent'}, ANY, {DEP: 'pobj'}]
+    agent_1 = [{DEP: 'nsubj'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'agent'}, ANY_ALPHA, {DEP: 'pobj'}]
+    agent_2 = [{DEP: 'nsubjpass'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'agent'}, ANY_ALPHA, {DEP: 'pobj'}]
 
     MATCHER.add("ATTR", None, attribute_1)
     MATCHER.add("ATTR", None, attribute_2)
@@ -211,9 +212,8 @@ def generate_prepositional_questions(match):
             question.append(format_phrase(subject_phrase))
             question.extend(verb_form_with_subject[1:])
 
-        # Very bad fix
-        if wh_word_pobject == 'What':
-            question.append(preposition.text)
+        # if wh_word_pobject == 'What':
+        question.append(preposition.text)
 
         question = ' '.join(question)
 
@@ -237,7 +237,8 @@ def generate_agent_questions(match):
     sentence = match.get_sentence()
     subject = match.get_first_token()
     pobject = match.get_last_token()
-    verb = subject.head
+    by_prep = pobject.head
+    verb = by_prep.head
 
     subject_phrase = extract_noun_phrase(subject, sentence)
     pobject_phrase = extract_noun_phrase(pobject, sentence)
@@ -245,8 +246,8 @@ def generate_agent_questions(match):
     wh_word_subject = choose_wh_word(subject_phrase)
     wh_word_pobject = choose_wh_word(pobject_phrase)
 
-    verb_form_with_subject = prepare_question_verb(verb, sentence, includes_subject=True) + ['by']
-    verb_form_with_pobject = prepare_question_verb(verb, sentence, includes_subject=False) + ['by']
+    verb_form_with_subject = prepare_question_verb(verb, sentence, includes_subject=True) + [by_prep.text]
+    verb_form_with_pobject = prepare_question_verb(verb, sentence, includes_subject=False) + [by_prep.text]
 
     if is_valid_subject(subject_phrase):
         question = [wh_word_pobject]
@@ -444,7 +445,7 @@ def extract_noun_phrase(token, sentence, exclude_span=None):
     for child in token.subtree:
         """This will fail in some cases, might want to try to just get full subtree, but then need to pay attention 
         what we call it on. For now, I'm going to call it only on subjects and object so should be OK to get subtree"""
-        if child in exclude_span:
+        if exclude_span and child in exclude_span:
             continue
         # if child.dep_.endswith("mod") \
         #         or child.dep_ == "compound" \
@@ -465,7 +466,9 @@ def get_verb_phrase(token, sentence):
     start_index = INFINITY
     end_index = -1
     for child in token.subtree:
-        if (child.dep_.startswith("aux") and child.head == token) or child == token:
+        if (child.dep_.startswith("aux") and child.head == token) \
+                or (child.dep_ == 'neg' and child.head == token) \
+                or child == token:
             if start_index > child.i:
                 start_index = child.i
 
@@ -481,7 +484,7 @@ def is_valid_sentence(sentence):
     :param sentence:
     :return:
     """
-    return 0
+    return True
 
 
 def trial_sentences():
@@ -502,7 +505,7 @@ def trial_sentences():
 
     text = NLP(u"Apple's logo was designed by Steve Jobs in early december 2006 in front of the Empire State Building.")
 
-    show_dependencies(text)
+    show_dependencies(doc8, port=5001)
     # for nc in text.noun_chunks:
     #     print(nc)
 
@@ -510,10 +513,11 @@ def trial_sentences():
 
 
 def is_past_tense(token):
-    return token.dep_ == 'VBD' or token.dep_ == 'VBN'
+    return token.tag_ == 'VBD' or token.tag_ == 'VBN'
 
 
 def generate_q():
+    initialize_patterns()
     # text = NLP(u'Computer Science is the study of both practical and theoretical approaches to computers.')
     # text = NLP(u'A router is a networking device that forwards data packets between computer networks.')
     # text = NLP(u"Stacy went to see Johnny at the store.")
@@ -524,11 +528,12 @@ def generate_q():
     # text = NLP(u"Apple's logo was designed by Steve Jobs in early december 2006.")
     # text = NLP(u'A computer scientist specializes in the theory of computation.')
     # text = NLP(u'Machines for calculating fixed numerical tasks such as the abacus have existed since antiquity.')
-    text = NLP(u'The ecclesiastical parish of Navenby was originally placed in the Longoboby Rural Deanery.')
+    # text = NLP(u'The ecclesiastical parish of Navenby was originally placed in the Longoboby Rural Deanery.')
+    # text = NLP(u'A router helps with packet forwarding.')
+    text = NLP(u'The handle should be attached before the mantle.')
+
     all_questions = []
 
-    for tok in text:
-        print(tok.ent_type_)
     matches = MATCHER(text)
     for ent_id, start, end in matches:
         match = Match(ent_id, start, end, text)
@@ -560,7 +565,6 @@ if __name__ == '__main__':
     # doc = NLP(u'Computer Science is the study of both practical and theoretical approaches to computers. A computer scientist specializes in the theory of computation.')
     # sentences = list(doc.sents)
     # show_dependencies(sentences[1].as_doc(), port=5001)
-    initialize_patterns()
     generate_q()
     # trial_sentences()
 
