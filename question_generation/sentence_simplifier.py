@@ -7,10 +7,12 @@ import sys
 from nltk import Tree
 from nltk.parse.stanford import StanfordParser
 from spacy import displacy
-from spacy.attrs import DEP
+from spacy.attrs import DEP, POS, TAG, ORTH
 from spacy.matcher import Matcher
 
-from question_generation.questions import Match, extract_noun_phrase, get_verb_phrase
+from question_generation.questions import Match, extract_noun_phrase, get_verb_phrase, is_past_tense, ANY_ALPHA, \
+    INFINITY, \
+    is_valid_sentence, OP, ANY
 
 from neuralcoref import Coref
 __location__ = os.path.realpath(
@@ -23,70 +25,12 @@ model_path = os.path.join(__location__, "stanford_parser/stanford-parser-models.
 PARSER = StanfordParser(model_path=parser_path, path_to_jar=jar_path, path_to_models_jar=model_path)
 
 NLP = spacy.load('en_core_web_md')
-RE_SUBORDINATES = " SBAR [ > VP < IN | > S|SINV ]  " + \
-                      " !< (IN < if|unless|that)" + \
-                      " < (S=sub !< (VP < VBG)) " + \
-                      " >S|SINV|VP "
-
-# def extract_subordinates(sentence):
-#     matcher = re.compile(RE_SUBORDINATES, re.UNICODE)
-#     matcher.findall()
-#     extracted = []
-#     return extracted
-#
-#
-# def filtered_chunks(doc, pattern):
-#     for chunk in doc.noun_chunks:
-#
-#         signature = ''.join(['<%s>' % w.tag_ for w in chunk])
-#         print(signature, chunk)
-#         if pattern.match(signature) is not None:
-#             yield chunk
-#
-#
-# def get_simplified_sentences(sentence):
-#     simplified = []
-#     simplified.append(sentence)
-#
-#     simplified.extend(extract_subordinates(sentence))
-#
-#
-# def show_tree(sent):
-#     def __show_tree(token, level):
-#         tab = "\t" * level
-#         sys.stdout.write("\n%s{" % (tab))
-#         [__show_tree(t, level + 1) for t in token.lefts]
-#         sys.stdout.write("\n%s\t%s [%s] (%s)" % (tab, token, token.dep_, token.tag_))
-#         [__show_tree(t, level + 1) for t in token.rights]
-#         sys.stdout.write("\n%s}" % (tab))
-#
-#     return __show_tree(sent.root, 1)
-#
-#
-# def print_pattern(sent):
-#     for token in sent:
-#         print(str(token.tag_) + ' | ')
-#
-#
-# def tok_format(tok):
-#     return "_".join([tok.orth_, tok.tag_, tok.dep_])
-#
-#
-# def to_nltk_tree(node):
-#     if node.n_lefts + node.n_rights > 0:
-#         return Tree(tok_format(node), [to_nltk_tree(child) for child in node.children])
-#     else:
-#         return tok_format(node)
+REL_PRONS_REM = ['which', 'who']
+REL_PRON_ADD = ['where', 'when', 'what']
 
 
 def is_plural(token):
     return token.tag_ == 'NNS' or token.tag_ == 'NNPS'
-
-
-def get_stanford_tree(sentence):
-    tagged_sentence = [(token.text, token.tag_) for token in sentence]
-    t = PARSER.tagged_parse(tagged_sentence)
-    return t
 
 
 def print_noun_chunks(sentence):
@@ -94,25 +38,28 @@ def print_noun_chunks(sentence):
         print(chunk)
 
 
-def extract_subordinate(sentence):
-    for tok in sentence:
-        if tok.dep_ == 'advcl':
-            for sub in tok.subtree:
-                print(sub)
+def find_parent_verb(token, depth=1):
+    if token.dep_ == 'ROOT' or (token.pos_ == 'VERB' and depth == 0):
+        return token
+
+    else:
+        if depth > 0:
+            depth -= 1
+        return find_parent_verb(token.head, depth)
 
 
 def appositive_sentence(appos, sentence):
     dependant = appos.head
     appositive_np = extract_noun_phrase(appos, sentence)
+    print(appositive_np)
     dependant_np = extract_noun_phrase(dependant, sentence, exclude_span=appositive_np)
 
-    if any(is_plural(tok) for tok in dependant_np):
-        verb = u'are'
-    else:
-        verb = u'is'
+    parent_verb = find_parent_verb(dependant)
+
+    verb = get_verb_correct_tense(dependant_noun_phrase=dependant_np, dependant_verb=parent_verb, verb_lemma='be')
 
     # Need dependant noun phrase to construct sentence
-    components = [tok.text for tok in dependant_np]
+    components = [tok.text for tok in dependant_np if tok.tag_ not in [':', ',']]
     components.append(verb)
     components.extend([tok.text for tok in appositive_np])
 
@@ -124,55 +71,271 @@ def appositive_sentence(appos, sentence):
 
 
 NLP = spacy.load('en_core_web_md')
-APPOS = Matcher(NLP.vocab)
+MATCHER = Matcher(NLP.vocab)
 
 
-def extract_appositives(sentence):
-    initialize_matchers()
-    matches = APPOS(sentence)
+def post_process(sentence):
+    pass
 
-    if matches is None:
-        return
 
-    for ent_id, start, end in matches:
-        match = Match(ent_id, start, end, sentence)
-        appos = match.get_tokens_by_dependency('appos')
+def remove_spans(sentence, spans):
+    sentence_text = []
+    for tok in sentence:
+        if any(tok in span for span in spans):
+            continue
+        sentence_text.append(tok.text)
+    sentence = NLP(' '.join(sentence_text))
+    return sentence
+
+
+def extract_subordinate(sentence):
+    for tok in sentence:
+        if tok.dep_ == 'advcl':
+            for sub in tok.subtree:
+                print(sub)
+
+
+def get_subtree_span(token, sentence):
+    start_index = INFINITY
+    end_index = -1
+    for child in token.subtree:
+        if start_index > child.i:
+            start_index = child.i
+
+        if end_index < child.i:
+            end_index = child.i
+
+    return sentence[start_index: (end_index + 1)]
+
+
+def extract_conjoined_subjects(match):
+    subj_1 = match.get_first_token()
+
+    return
+
+
+def extract_conjugate_sentences(match):
+    sentence = match.get_sentence()
+    root_verb = match.span.root
+    conj_verb = match.get_last_token()
+    conj = match.get_tokens_by_dependency('cc')
+
+    if conj_verb.head != root_verb:
+        return sentence
+
+    conj_subtree = get_subtree_span(conj_verb, sentence)
+
+    conj_sent = NLP(' '.join([tok.text for tok in conj_subtree]))
+    root_sent = remove_spans(sentence, [conj_subtree, conj])
+
+    return root_sent, conj_sent
+
+
+def extract_appositives(match):
+    sentence = match.get_sentence()
+
+    appos = match.get_tokens_by_dependency('appos')[0]
 
     appositive_sent, appositive_np = appositive_sentence(appos, sentence)
-    print(appositive_sent)
 
-    sentence = sentence.remove(appositive_np)
+    sentence = remove_spans(sentence, [appositive_np])
     return sentence, appositive_sent
 
 
 def initialize_matchers():
-    pattern = [{DEP: 'appos'}]
-    APPOS.add("Appositive", None, pattern)
+    # IS_SUBJ = NLP.vocab.add_flag(lambda tok: tok.dep_ in ['nsubj', 'nsubjpass'])
+
+    appositive = [{DEP: 'appos'}]
+    conjoined_sentences_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {POS: 'VERB', DEP: 'conj'}]
+    conjoined_sentences_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {POS: 'VERB', DEP: 'conj'}]
+
+    # conjoined_subjects_1 = [{DEP: 'nsubj'}, ANY, {DEP: 'cc'}, ANY, {DEP: 'conj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}]
+    # conjoined_subjects_2 = [{DEP: 'nsubjpass'}, ANY, {DEP: 'cc'}, ANY, {DEP: 'conj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}]
+
+    commas = [{ORTH: ','}, ANY_ALPHA, {ORTH: ','}]
+    parenthesis = [{ORTH: '('}, ANY_ALPHA, {ORTH: ')'}]
+
+    adjectival_modifier = [{POS: 'NOUN'}, {DEP: 'acl'}]
+
+    # test_pattern = [{DEP: 'ROOT', POS: 'VERB'}, ANY, {DEP: 'conj', POS: 'VERB'}] #, ANY, {POS: 'VERB', DEP: 'conj'}]
+    # test_pattern = [{DEP: 'nsubj'}, ANY, {DEP: 'conj'}]
+    test_pattern = [{DEP: 'nsubj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}]
+
+    MATCHER.add("APPOS", None, appositive)
+    MATCHER.add("CONJ_SENT", None, conjoined_sentences_1)
+    MATCHER.add("CONJ_SENT", None, conjoined_sentences_2)
+    MATCHER.add("PUNCT", None, commas)
+    MATCHER.add("PUNCT", None, parenthesis)
+    MATCHER.add("ACL", None, adjectival_modifier)
+    MATCHER.add("TP", None, test_pattern)
 
 
-def draw_syntax_tree(tree):
-    for line in tree:
-        for tree in line:
-            print(tree)
+def extract_adjectival_modifier(match):
+    sentences = []
+    sentence = match.get_sentence()
+    subject = match.get_first_token()
+    adj_mod = match.get_last_token()
+
+    adj_mod_np = extract_noun_phrase(adj_mod, sentence)
+    subject_np = extract_noun_phrase(subject, sentence, exclude_span=adj_mod_np)
+
+    verb = get_verb_correct_tense(dependant_noun_phrase=subject_np, dependant_verb=adj_mod, verb_lemma='be')
+
+    sentences.append(sentence)
+
+    adj_sent = [tok.text for tok in subject_np]
+    adj_sent.extend([verb])
+    adj_sent.extend([tok.text for tok in adj_mod_np])
+
+    adj_sent = NLP(' '.join(adj_sent))
+    sentences.append(adj_sent)
+
+    return sentences
+
+
+def extract_from_punct(match):
+    sents = []
+    sentence = match.get_sentence()
+    sents.append(sentence)
+
+    punct_span = sentence[match.get_first_token().i + 1: match.get_last_token().i]
+    first_after_punct = punct_span[0]
+
+    sentence = remove_spans(sentence, spans=[match.span])
+
+    punct_sent = []
+    # Ensure relative clause is treated, may more this to separate pattern match
+    for token in punct_span:
+        if token.dep_ == 'relcl':
+            subject_np = extract_noun_phrase(token.head, sentence, exclude_span=match.span)
+            if subject_np is None:
+               continue
+
+            punct_sent.extend([tok.text for tok in subject_np])
+            # Remove the which, who and add is/were etc for where, when..
+            if first_after_punct.text in REL_PRON_ADD:
+                verb = get_verb_correct_tense(subject_np, token)
+                punct_sent.append(verb)
+
+            punct_sent.extend([tok.text for tok in punct_span] + ['.'])
+
+            if first_after_punct.text in REL_PRONS_REM:
+                punct_sent.remove(first_after_punct.text)
+
+    if len(punct_sent) == 0:
+        punct_sent = NLP(' '.join([tok.text for tok in punct_span]) + '.')
+    else:
+        punct_sent = NLP(' '.join(punct_sent))
+
+    if is_valid_sentence(punct_sent):
+        sents.append(punct_sent)
+
+    if is_valid_sentence(sentence):
+        sents.append(sentence)
+
+    return sents
+
+
+def get_verb_correct_tense(dependant_noun_phrase, dependant_verb, verb_lemma=''):
+    past_tense = is_past_tense(dependant_verb)
+    if verb_lemma == 'be':
+        if any(is_plural(tok) for tok in dependant_noun_phrase):
+            if past_tense:
+                verb = 'were'
+            else:
+                verb = u'are'
+        else:
+            if past_tense:
+                verb = 'was'
+            else:
+                verb = u'is'
+        return verb
+    else:
+        return None
+
+
+def TP(match):
+    print(match.span)
+    return [match.get_sentence()]
+
+
+pattern_to_simplification = {
+    "APPOS": lambda match: extract_appositives(match),
+    "SUBORD": lambda match: extract_subordinate(match),
+    "CONJ_SENT": lambda match: extract_conjugate_sentences(match),
+    "CC_SUBJ": lambda match: extract_conjoined_subjects(match),
+    "PUNCT": lambda match: extract_from_punct(match),
+    "ACL": lambda match: extract_adjectival_modifier(match),
+    "TP": lambda match: TP(match)
+}
+
+
+def handle_match(pattern_name):
+    return pattern_to_simplification[pattern_name]
 
 
 def sentences():
     t1 = NLP(u'In professional work, the most important attributes for HCI experts are to be both creative and practical, placing design at the centre of the field.')
-    t2 = NLP('A computer science course does not provide sufficient time for this kind of training in creative design, but it can provide the essential elements: an understanding of the user s needs, and an understanding of potential solutions.')
+    t2 = NLP(u'A computer science course does not provide sufficient time for this kind of training in creative design, but it can provide the essential elements: an understanding of the user s needs, and an understanding of potential solutions.')
+    t3 = NLP(u'A router is a forwarding device and it helps with inter-network communications.')
+    t4 = NLP(u'The cloud and wireless technology have both been invented in the last decade.')
+    t5 = NLP(u'Harry and Sally have never been to London.')
+    t6 = NLP(u'A user centred design process, as taught in earlier years of the tripos and experienced in many group design projects, provides a professional approach to creating software with functionality that users need.')
+    t7 = NLP(u'However, John studied, hoping to get a good grade.')
+    t8 = NLP(u'That will not happen if the cork is placed at the right time.')
+    t9 = NLP(u'As far as current studies go, this is the best available solution.')
+    t10 = NLP(u'Architects and product designers need a thorough technical grasp of the materials they work with, but the success of their work depends on the creative application of this technical knowledge.')
+    t11 = NLP(u'John writes and Mary paints. They both like pie.')
+    t12 = NLP(u'In principle, the RBMs can be trained separately and then fine-tuned in combination.')
+    t13 = NLP(u'One interesting aspect of word2vec training is the use of negative sampling instead of softmax (which is computationally very expensive)')
+    t14 = NLP(u'The heavy rain, which was unusual for that time of year, destroyed most of the plants in my garden.')
+    t15 = NLP(u'The rule derived by Andrej can be used freely nowadays.')
+    t16 = NLP(u'They experimented on the people fired last year.')
+    t17 = NLP(u'They kept thinking about a way to escape.')
+    t18 = NLP(u'He came up with the idea of a time machine.')
+    # sent, appositive = extract_appositives(t2)
+    # print(sent)
+    # print(appositive)
 
-    extract_appositives(t2)
+    # show_dependencies(t18)
+    # print([(tok.dep_, tok.pos_) for tok in t10])
+    simplify_sentence(t16, {})
+    # coref(t11)
 
-def coref(sentence):
-    coref = Coref()
+
+def simplify_sentence(sentence, coreferences):
+    """The main idea is the following:
+    1. Check is anything is in coreferences and resolve the sentence
+    2. Run matcher against sentence and extract sentences appropriately -> consider case """
+
+    initialize_matchers()
+
+    matches = MATCHER(sentence)
+    print(sentence)
+
+    for ent_id, start, end in matches:
+        match = Match(ent_id, start, end, sentence)
+        pattern_name = NLP.vocab.strings[ent_id]
+        print(pattern_name)
+        simplified_sentences = handle_match(pattern_name)(match)
+        for sentence in simplified_sentences:
+            print(sentence)
+
+
+def coref(text):
+    text = u"John and Mary paint. They both like pie."
+    text = u"My sister has a dog. She loves that dog."
+    coref = Coref(nlp=NLP)
+
     # clusters = coref.one_shot_coref(utterances=u"My sister has a dog. She loves that dog.")
-    clusters = coref.one_shot_coref(utterances=sentence)
-    print(clusters)
+    clusters = coref.one_shot_coref(utterances=text)
+    # print(clusters)
 
     mentions = coref.get_mentions()
     print(mentions)
 
-    utterances = coref.get_utterances()
-    print(utterances)
+    # utterances = coref.get_utterances()
+    # print(utterances)
 
     resolved_utterance_text = coref.get_resolved_utterances()
     print(resolved_utterance_text)
@@ -190,25 +353,3 @@ if __name__ == '__main__':
 
 
 
-
-    # doc = NLP(u'John studied, hoping to get better grades.')
-    #
-    # sentences = [sent for sent in doc.sents]
-    # tr, = get_stanford_tree(sentences[0])
-    # # tr.pretty_print()
-    # tt = tr.pformat()
-    # # print(tt)
-    #
-    # reg = re.compile(r'ROOT=root << (VP !< VP < (/,/=comma $+ /[^`].*/=modifier))')
-    # mat = reg.search(tt)
-    # print(mat.group())
-
-    # pattern = re.compile(r'(<JJ>)*(<NN>|<NNS>|<NNP>)+')
-
-    # # show_tree(sentences[1])
-    # print(sentences[1].subtree)
-    # command = "John studied, hoping to get better grades."
-    # command2 = "As John slept, I studied."
-    # en_doc = NLP(u'' + command2)
-
-    # [to_nltk_tree(sent.root).pretty_print() for sent in en_doc.sents]
