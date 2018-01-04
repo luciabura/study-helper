@@ -1,6 +1,5 @@
 from collections import OrderedDict
 
-from spacy import displacy
 from spacy.matcher import Matcher
 
 import question_generation.sentence_simplifier as simplifier
@@ -8,7 +7,8 @@ from keyword_extraction.keywords_filtered import get_keywords_with_scores
 from question_generation import *
 from summarization.summary import get_sentences_with_keywords_and_scores
 from text_processing import preprocessing as preprocess
-from text_processing.grammar import has_pronouns, extract_noun_phrase, get_verb_phrase, is_past_tense
+from text_processing.grammar import has_pronouns, extract_noun_phrase, get_verb_phrase, is_past_tense, is_3rd_person, \
+    is_valid_subject, show_dependencies
 from text_processing.preprocessing import clean_and_format
 from utilities import NLP
 from utilities.read_write import read_file
@@ -83,10 +83,6 @@ def sort_scores(scores):
     return sorted_scores
 
 
-def is_3rd_person(verb):
-    return verb.tag_ == 'VBZ'
-
-
 def prepare_question_verb(verb, sentence, includes_subject):
     # Have to check verb for more than 1 word => needn't prepare question verb
     # eg: can take, will see, etc
@@ -131,11 +127,6 @@ def prepare_question_verb(verb, sentence, includes_subject):
             q_verb.append(verb.text)
 
     return q_verb
-
-
-def is_valid_subject(subject):
-    """If it has any coreference or if it contains something like those, this etc, then it isn't"""
-    return True
 
 
 def format_phrase(span):
@@ -397,10 +388,6 @@ def get_coreference(pronoun):
     return 0
 
 
-def show_dependencies(sentence, port=5000):
-    displacy.serve(sentence, style='dep', port=port)
-
-
 def trial_sentences():
     text = NLP(u'Computer architecture is a set of rules that describe the functionality of computer systems.')
     text_2 = NLP(u"Apple's logo was designed by Steve Jobs.")
@@ -481,8 +468,8 @@ def generate_questions_trial():
                     for question in questions:
                         all_questions.add(question)
 
-    for question in all_questions:
-        print(question)
+    # for question in all_questions:
+    #     print(question)
 
 
 # Switch statement, sort of

@@ -23,3 +23,5 @@ class Match:
 
     def get_tokens_by_dependency(self, dependency):
         return [tok for tok in self.span if tok.dep_ == dependency]
+
+

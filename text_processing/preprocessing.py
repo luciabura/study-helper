@@ -122,3 +122,4 @@ def nltk_remove_stopwords(data):
     without_stopwords = [word for word in data if word not in STOP_WORDS]
     return without_stopwords
 
+

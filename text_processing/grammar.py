@@ -1,3 +1,5 @@
+from spacy import displacy
+
 from utilities import INFINITY
 
 
@@ -61,3 +63,19 @@ def is_valid_sentence(sentence):
 
 def is_past_tense(token):
     return token.tag_ == 'VBD' or token.tag_ == 'VBN'
+
+
+def is_3rd_person(verb):
+    return verb.tag_ == 'VBZ'
+
+
+def is_valid_subject(subject):
+    """If it has any coreference or if it contains something like those, this etc, then it isn't"""
+    if any(tok.pos_ == 'PRON' for tok in subject):
+        return False
+
+    return True
+
+
+def show_dependencies(sentence, port=5000):
+    displacy.serve(sentence, style='dep', port=port)
