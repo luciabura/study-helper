@@ -6,13 +6,18 @@ This is
 """
 
 import networkx as nx
+from networkx import draw_networkx, draw, drawing
+import matplotlib.pyplot as plt
+
 import operator
+import pygraphviz
 
 import text_processing.preprocessing as preprocess
 from utilities.read_write import read_file
 
 WINDOW_SIZE = 2
 INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS']
+
 
 def get_keyword_combinations(original_sequence, scores):
     keywords = list(scores.keys())
@@ -101,6 +106,15 @@ def get_keywords(text):
 
     graph = build_graph(graph_words)
     add_graph_edges(graph, original_sequence)
+
+    graph.remove_nodes_from(nx.isolates(graph))
+
+    graph.graph['node']= {'shape': 'plaintext'}
+    a = drawing.nx_agraph.to_agraph(graph)
+    a.layout('dot')
+    a.draw("graph_2.png")
+    # nx.draw_random(graph)
+    # plt.savefig("graph.png")
 
     pagerank_scores = nx.pagerank(graph, alpha=0.85, tol=0.0001)
 
