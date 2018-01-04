@@ -105,10 +105,10 @@ def get_keyphrases_with_scores(text):
 
     # graph.remove_nodes_from(nx.isolates(graph))
 
-    graph.graph['node'] = {'shape': 'plaintext'}
-    a = nx.drawing.nx_agraph.to_agraph(graph)
-    a.layout('dot')
-    a.draw("graph_TR_LEM_2.png")
+    # graph.graph['node'] = {'shape': 'plaintext'}
+    # a = nx.drawing.nx_agraph.to_agraph(graph)
+    # a.layout('dot')
+    # a.draw("graph_TR_LEM_2.png")
 
     pagerank_scores = nx.pagerank(graph, alpha=0.85, tol=0.0001)
 
