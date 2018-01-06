@@ -36,7 +36,7 @@ def get_keyword_combinations(original_sequence, scores):
                 else:
                     break
 
-            avg_score = avg_score / float(keyphrase_length)
+            # avg_score = avg_score / float(keyphrase_length)
             keyphrase = ' '.join(keyphrase_components)
             keyphrases[keyphrase] = avg_score
             j = i + len(keyphrase_components)

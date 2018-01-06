@@ -1,4 +1,5 @@
 import networkx as nx
+from spacy.lang.en.stop_words import STOP_WORDS
 
 import text_processing.preprocessing as preprocess
 from utilities.read_write import read_file
@@ -6,14 +7,14 @@ from utilities.read_write import read_file
 # from utilities.words import get_cs_words
 
 WINDOW_SIZE = 2
-INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS']
-PUNCTUATION = ['.', '?', ',']
+INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS', 'NNPS']
 
 
 # REFERENCE_WORDS = get_cs_words()
 
 
 def get_keyword_combinations(original_tokens, scores):
+    global preposition
     keywords = list(scores.keys())
     keyphrases_with_scores = {}
 
@@ -24,23 +25,61 @@ def get_keyword_combinations(original_tokens, scores):
         if original_tokens[i].lemma_.lower() in keywords:
             keyphrase_components = []
             keyphrase_tokens = []
+
             keyphrase_length = 0
             avg_score = 0
 
-            for token in original_tokens[i:i + 3]:
-                if token.text in PUNCTUATION:
-                    break
+            skip_count = 0
+
+            # preposition = None
+            # preposition_pos = None
+
+            for token in original_tokens[i:i + 4]:
+                if skip_count > 0:
+                    skip_count -= 1
+                    continue
+
+                if token.pos_ == 'PUNCT':
+                    # break
+                    if token.tag_ == 'HYPH':
+                        second_part = original_tokens[token.i + 1]
+                        if second_part.lower_ not in keyphrase_components and second_part.lemma_.lower() in keywords:
+                            first_part = keyphrase_components.pop(keyphrase_length - 1)
+                            keyphrase_components.append(''.join([first_part, '-', second_part.lower_]))
+                            keyphrase_tokens.append(second_part)
+                            avg_score += scores[token.head.lemma_.lower()]
+                            skip_count = 1
+                            continue
+                        else:
+                            break
+                    else:
+                        break
 
                 token_lemma = token.lemma_.lower()
                 token_text = token.text.lower()
 
                 if token_lemma in keywords and token_text not in keyphrase_components:
+
+                    # if preposition and token.head == preposition:
+                    #     keyphrase_components.insert(preposition_pos, preposition.lower_)
+                    #     keyphrase_length += 1
+
                     keyphrase_components.append(token_text)
                     keyphrase_tokens.append(token)
                     avg_score += scores[token_lemma]
                     keyphrase_length += 1
                 else:
-                    break
+                    if token_text in keyphrase_components:
+                        continue
+                    else:
+                        break
+
+                    # if token.dep_ == 'prep':
+                    #     print(token, keyphrase_length)
+                    #     preposition = token
+                    #     preposition_pos = keyphrase_length
+                    # else:
+                    #     break
 
             keyphrase = ' '.join(keyphrase_components)
             keyphrases_with_scores[keyphrase] = (avg_score, keyphrase_tokens)
@@ -86,7 +125,7 @@ def build_graph(chosen_words):
 def get_graph_tokens(tokens, include_filter):
     graph_tokens = [token for token in tokens
                     if token.tag_ in include_filter
-                    and len(token.text) > 2]
+                    and token.text not in STOP_WORDS]
 
     return graph_tokens
 
@@ -135,19 +174,32 @@ def get_keywords(text, keyword_count=10, customize_count=False, trim=True, filte
 
 
 def get_filtered_keywords(sorted_keyphrases, keyphrases_with_scores):
-    visited = []
+    """Assumes keyphrases comes in an order of length, i.e that score is cummulative
+    If this assumption no longer holds, this method is wrong/incomplete"""
     keyphrases = []
     for keyphrase in sorted_keyphrases:
-        keyphrase_tokens = keyphrases_with_scores[keyphrase][1]
-        seen_count = 0
-        for token in keyphrase_tokens:
-            lemma = token.lemma_.lower()
-            if lemma in visited:
-                seen_count += 1
+        seen = False
+        for existing_keyphrase in keyphrases:
+            if set(keyphrase.split()) < set(existing_keyphrase.split()):
+                seen = True
+            elif set(existing_keyphrase.split()) < set(keyphrase.split()):
+                keyphrases.remove(existing_keyphrase)
+                break
             else:
-                visited.append(lemma)
+                # Checking for subsets of token lemmas
+                # -> eg: minimal generating sets, minimal set will not include 'minimat set' in final keyphrases
 
-        if seen_count < len(keyphrase_tokens):
+                set_k_tokens = set([tok.lemma_.lower() for tok in keyphrases_with_scores[keyphrase][1]])
+                set_e_tokens = set([tok.lemma_.lower() for tok in keyphrases_with_scores[existing_keyphrase][1]])
+
+                if ('-' in keyphrase and '-' in existing_keyphrase) \
+                        or ('-' not in keyphrase and '-' not in existing_keyphrase):
+                    if set_k_tokens < set_e_tokens:
+                        seen = True
+                    elif set_e_tokens < set_k_tokens:
+                        keyphrases.remove(existing_keyphrase)
+
+        if not seen:
             keyphrases.append(keyphrase)
 
     return keyphrases
@@ -155,6 +207,6 @@ def get_filtered_keywords(sorted_keyphrases, keyphrases_with_scores):
 
 if __name__ == '__main__':
     FILE_PATH = input('Enter the absolute path of '
-                          'the file you want to extract the keywords from: \n')
+                      'the file you want to extract the keywords from: \n')
     FILE_TEXT = read_file(FILE_PATH)
-    print((get_keywords(FILE_TEXT, trim=False, filter_similar=True)))
+    print((get_keywords(FILE_TEXT, trim=True, filter_similar=True)))

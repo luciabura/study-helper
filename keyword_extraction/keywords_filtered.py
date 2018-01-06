@@ -8,7 +8,7 @@ from collections import OrderedDict
 # from utilities.words import get_cs_words
 
 WINDOW_SIZE = 2
-INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS']
+INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS', 'NNPS']
 PUNCTUATION = ['.', '?', ',']
 
 

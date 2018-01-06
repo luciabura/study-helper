@@ -3,10 +3,12 @@ from keyword_extraction.keywords import get_keywords
 from utilities.read_write import read_file
 
 
-def get_summary(text):
+def get_summary(text, sentence_count=None):
     keywords = get_keywords(text)
     sentences = preprocess.nltk_sentence_tokenize(text)
-    sentence_count = len(sentences)/3
+
+    if sentence_count is None:
+        sentence_count = len(sentences)/3
 
     canditate_sentences = get_sentences_with_keywords(keywords, sentences)
     sorted_canditate_sentences = sort_sentences(canditate_sentences)
