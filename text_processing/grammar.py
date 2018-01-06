@@ -1,6 +1,6 @@
 from spacy import displacy
 
-from utilities import INFINITY
+from utilities import INFINITY, NLP
 
 
 def has_pronouns(span):
@@ -54,7 +54,7 @@ def get_verb_phrase(token, sentence):
 
 def is_valid_sentence(sentence):
     """
-
+    TODO: Implement
     :param sentence:
     :return:
     """
@@ -79,3 +79,63 @@ def is_valid_subject(subject):
 
 def show_dependencies(sentence, port=5000):
     displacy.serve(sentence, style='dep', port=port)
+
+
+def is_plural(token):
+    return token.tag_ == 'NNS' or token.tag_ == 'NNPS'
+
+
+def print_noun_chunks(sentence):
+    for chunk in sentence.noun_chunks:
+        print(chunk)
+
+
+def find_parent_verb(token, depth=1):
+    if token.dep_ == 'ROOT' or (token.pos_ == 'VERB' and depth == 0):
+        return token
+
+    else:
+        if depth > 0:
+            depth -= 1
+        return find_parent_verb(token.head, depth)
+
+
+def get_verb_correct_tense(dependant_noun_phrase, dependant_verb, verb_lemma=''):
+    past_tense = is_past_tense(dependant_verb)
+    if verb_lemma == 'be':
+        if any(is_plural(tok) for tok in dependant_noun_phrase):
+            if past_tense:
+                verb = 'were'
+            else:
+                verb = u'are'
+        else:
+            if past_tense:
+                verb = 'was'
+            else:
+                verb = u'is'
+        return verb
+    else:
+        return None
+
+
+def remove_spans(sentence, spans):
+    sentence_text = []
+    for tok in sentence:
+        if any(tok in span for span in spans):
+            continue
+        sentence_text.append(tok.text)
+    sentence = NLP(' '.join(sentence_text))
+    return sentence
+
+
+def get_subtree_span(token, sentence):
+    start_index = INFINITY
+    end_index = -1
+    for child in token.subtree:
+        if start_index > child.i:
+            start_index = child.i
+
+        if end_index < child.i:
+            end_index = child.i
+
+    return sentence[start_index: (end_index + 1)]

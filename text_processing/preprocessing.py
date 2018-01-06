@@ -39,7 +39,7 @@ def clean_and_format(text):
     text = ' '.join(words)
 
     # get rid of everything except . , ? and '
-    text = _strip_punctuation(text, partial=True)
+    # text = _strip_punctuation(text, partial=True)
     return text
 
 

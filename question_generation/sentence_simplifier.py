@@ -7,8 +7,9 @@ from spacy.matcher import Matcher
 
 from neuralcoref import Coref
 from question_generation import *
-from text_processing.grammar import extract_noun_phrase, is_valid_sentence, is_past_tense
-from utilities import INFINITY, NLP
+from text_processing.grammar import extract_noun_phrase, is_valid_sentence, find_parent_verb, \
+    get_verb_correct_tense, remove_spans, get_subtree_span
+from utilities import NLP
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -25,69 +26,9 @@ REL_PRONS_REM = ['which', 'who']
 REL_PRON_ADD = ['where', 'when', 'what']
 
 
-def is_plural(token):
-    return token.tag_ == 'NNS' or token.tag_ == 'NNPS'
-
-
-def print_noun_chunks(sentence):
-    for chunk in sentence.noun_chunks:
-        print(chunk)
-
-
-def find_parent_verb(token, depth=1):
-    if token.dep_ == 'ROOT' or (token.pos_ == 'VERB' and depth == 0):
-        return token
-
-    else:
-        if depth > 0:
-            depth -= 1
-        return find_parent_verb(token.head, depth)
-
-
-def get_verb_correct_tense(dependant_noun_phrase, dependant_verb, verb_lemma=''):
-    past_tense = is_past_tense(dependant_verb)
-    if verb_lemma == 'be':
-        if any(is_plural(tok) for tok in dependant_noun_phrase):
-            if past_tense:
-                verb = 'were'
-            else:
-                verb = u'are'
-        else:
-            if past_tense:
-                verb = 'was'
-            else:
-                verb = u'is'
-        return verb
-    else:
-        return None
-
-
 def post_process(sentence):
     """TODO:implement"""
     pass
-
-
-def remove_spans(sentence, spans):
-    sentence_text = []
-    for tok in sentence:
-        if any(tok in span for span in spans):
-            continue
-        sentence_text.append(tok.text)
-    sentence = NLP(' '.join(sentence_text))
-    return sentence
-
-
-def get_subtree_span(token, sentence):
-    start_index = INFINITY
-    end_index = -1
-    for child in token.subtree:
-        if start_index > child.i:
-            start_index = child.i
-
-        if end_index < child.i:
-            end_index = child.i
-
-    return sentence[start_index: (end_index + 1)]
 
 
 def extract_conjoined_subjects(match):
@@ -357,8 +298,11 @@ def show_dependencies(sentence, port=5000):
     displacy.serve(sentence, style='dep', port=port)
 
 
-# if __name__ == '__main__':
-#     sentences()
-#
+if __name__ == '__main__':
+    doc = NLP(u'The set of natural numbers is countably infinite and different from the compatibility of systems.')
+    # for tok in doc:
+    #     print (tok.text, tok.dep_, tok.head)
+    show_dependencies(doc)
+
 
 

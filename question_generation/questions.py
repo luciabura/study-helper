@@ -407,6 +407,8 @@ def trial_sentences():
         u'A user centred design process provides a professional approach to creating software with functionality that users need.')
 
     text = NLP(u"Apple's logo was designed by Steve Jobs in early december 2006 in front of the Empire State Building.")
+    text = NLP(u'John never believed that Hamilton shot Aaron Burr.')
+    # TODO: THIS CASE NEEDS TO BE TREATED sth ... verb past tense -> is not treated
 
     show_dependencies(doc8, port=5001)
     # for nc in text.noun_chunks:
