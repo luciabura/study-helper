@@ -56,7 +56,8 @@ def extract_conjugate_sentences(match):
 
     conj_subtree = get_subtree_span(conj_verb, sentence)
 
-    conj_sent = NLP(' '.join([tok.text for tok in conj_subtree]))
+    # conj_sent = NLP(' '.join([tok.text for tok in conj_subtree]))
+    conj_sent = [tok.text for tok in conj_subtree]
     root_sent = remove_spans(sentence, [conj_subtree, conj])
 
     sentences.append(conj_sent)
@@ -73,18 +74,22 @@ def appositive_sentence(appos, sentence):
 
     parent_verb = find_parent_verb(dependant)
 
-    verb = get_verb_correct_tense(dependant_noun_phrase=dependant_np, dependant_verb=parent_verb, verb_lemma='be')
+    if parent_verb is None:
+        # X: the study of Y.
+        verb = 'is'
+    else:
+        verb = get_verb_correct_tense(dependant_noun_phrase=dependant_np, dependant_verb=parent_verb, verb_lemma='be')
 
     # Need dependant noun phrase to construct sentence
-    components = [tok.text for tok in dependant_np if tok.tag_ not in [':', ',']]
-    components.append(verb)
-    components.extend([tok.text for tok in appositive_np])
+    appositive_sent = [tok.text for tok in dependant_np if tok.tag_ not in [':', ',']]
+    appositive_sent.append(verb)
+    appositive_sent.extend([tok.text for tok in appositive_np])
 
-    s = ' '.join(components)
-    s += '.'
+    # s = ' '.join(components)
+    # s += '.'
 
-    sentence = NLP(s)
-    return sentence, appositive_np
+    # sentence = NLP(s)
+    return appositive_sent, appositive_np
 
 
 def extract_appositives(match):
@@ -117,7 +122,7 @@ def extract_adjectival_modifier(match):
     adj_sent.extend([verb])
     adj_sent.extend([tok.text for tok in adj_mod_np])
 
-    adj_sent = NLP(' '.join(adj_sent))
+    # adj_sent = NLP(' '.join(adj_sent))
     _sentences.append(adj_sent)
 
     return _sentences
@@ -127,8 +132,10 @@ def initialize_matchers():
     # IS_SUBJ = NLP.vocab.add_flag(lambda tok: tok.dep_ in ['nsubj', 'nsubjpass'])
 
     appositive = [{DEP: 'appos'}]
-    conjoined_sentences_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {POS: 'VERB', DEP: 'conj'}]
-    conjoined_sentences_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {POS: 'VERB', DEP: 'conj'}]
+    conjoined_sentences_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA,
+                             {POS: 'VERB', DEP: 'conj'}]
+    conjoined_sentences_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA,
+                             {POS: 'VERB', DEP: 'conj'}]
 
     # conjoined_subjects_1 = [{DEP: 'nsubj'}, ANY, {DEP: 'cc'}, ANY, {DEP: 'conj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}]
     # conjoined_subjects_2 = [{DEP: 'nsubjpass'}, ANY, {DEP: 'cc'}, ANY, {DEP: 'conj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}]
@@ -161,12 +168,12 @@ def extract_from_punct(match):
     sentence = remove_spans(sentence, spans=[match.span])
 
     punct_sent = []
-    # Ensure relative clause is treated, may more this to separate pattern match
+    # Ensure relative clause is treated, may move this to separate pattern match
     for token in punct_span:
         if token.dep_ == 'relcl':
             subject_np = extract_noun_phrase(token.head, sentence, exclude_span=match.span)
             if subject_np is None:
-               continue
+                continue
 
             punct_sent.extend([tok.text for tok in subject_np])
             # Remove the which, who and add is/were etc for where, when..
@@ -180,15 +187,13 @@ def extract_from_punct(match):
                 punct_sent.remove(first_after_punct.text)
 
     if len(punct_sent) == 0:
-        punct_sent = NLP(' '.join([tok.text for tok in punct_span]) + '.')
-    else:
-        punct_sent = NLP(' '.join(punct_sent))
+        # punct_sent = NLP(' '.join([tok.text for tok in punct_span]) + '.')
+        punct_sent = [tok.text for tok in punct_span] + ['.']
+    # else:
+        # punct_sent = NLP(' '.join(punct_sent))
 
-    if is_valid_sentence(punct_sent):
-        sents.append(punct_sent)
-
-    if is_valid_sentence(sentence):
-        sents.append(sentence)
+    sents.append(punct_sent)
+    sents.append(sentence)
 
     return sents
 
@@ -214,19 +219,24 @@ def handle_match(pattern_name):
 
 
 def sentences():
-    t1 = NLP(u'In professional work, the most important attributes for HCI experts are to be both creative and practical, placing design at the centre of the field.')
-    t2 = NLP(u'A computer science course does not provide sufficient time for this kind of training in creative design, but it can provide the essential elements: an understanding of the user s needs, and an understanding of potential solutions.')
+    t1 = NLP(
+        u'In professional work, the most important attributes for HCI experts are to be both creative and practical, placing design at the centre of the field.')
+    t2 = NLP(
+        u'A computer science course does not provide sufficient time for this kind of training in creative design, but it can provide the essential elements: an understanding of the user s needs, and an understanding of potential solutions.')
     t3 = NLP(u'A router is a forwarding device and it helps with inter-network communications.')
     t4 = NLP(u'The cloud and wireless technology have both been invented in the last decade.')
     t5 = NLP(u'Harry and Sally have never been to London.')
-    t6 = NLP(u'A user centred design process, as taught in earlier years of the tripos and experienced in many group design projects, provides a professional approach to creating software with functionality that users need.')
+    t6 = NLP(
+        u'A user centred design process, as taught in earlier years of the tripos and experienced in many group design projects, provides a professional approach to creating software with functionality that users need.')
     t7 = NLP(u'However, John studied, hoping to get a good grade.')
     t8 = NLP(u'That will not happen if the cork is placed at the right time.')
     t9 = NLP(u'As far as current studies go, this is the best available solution.')
-    t10 = NLP(u'Architects and product designers need a thorough technical grasp of the materials they work with, but the success of their work depends on the creative application of this technical knowledge.')
+    t10 = NLP(
+        u'Architects and product designers need a thorough technical grasp of the materials they work with, but the success of their work depends on the creative application of this technical knowledge.')
     t11 = NLP(u'John writes and Mary paints. They both like pie.')
     t12 = NLP(u'In principle, the RBMs can be trained separately and then fine-tuned in combination.')
-    t13 = NLP(u'One interesting aspect of word2vec training is the use of negative sampling instead of softmax (which is computationally very expensive)')
+    t13 = NLP(
+        u'One interesting aspect of word2vec training is the use of negative sampling instead of softmax (which is computationally very expensive)')
     t14 = NLP(u'The heavy rain, which was unusual for that time of year, destroyed most of the plants in my garden.')
     t15 = NLP(u'The rule derived by Andrej can be used freely nowadays.')
     t16 = NLP(u'They experimented on the people fired last year.')
@@ -242,13 +252,14 @@ def sentences():
     # coref(t11)
 
 
+
 def simplify_sentence(sentence, coreferences={}):
     """The main idea is the following:
     1. Check is anything is in coreferences and resolve the sentence
     2. Run matcher against sentence and extract sentences appropriately -> consider case """
 
     initialize_matchers()
-    sentences_ = set([])
+    sentences_ = []
 
     queue = Queue()
     queue.put(sentence)
@@ -256,7 +267,8 @@ def simplify_sentence(sentence, coreferences={}):
         sent = queue.get()
         matches = MATCHER(sent)
 
-        sentences_.add(sent)
+        if sent not in sentences:
+            sentences_.append(sent)
 
         for ent_id, start, end in matches:
             match = Match(ent_id, start, end, sent)
@@ -264,11 +276,14 @@ def simplify_sentence(sentence, coreferences={}):
             # print(pattern_name)
             simplified_sentences = handle_match(pattern_name)(match)
             for s in simplified_sentences:
-                sentences_.add(s)
+                if s not in sentences_:
+                    sentences_.append(s)
                 queue.put(s)
 
-    return sentences_
-    
+    nlp_sentences = list(map(NLP, sentences_))
+    valid_sentences = filter(is_valid_sentence, nlp_sentences)
+    return valid_sentences
+
 
 def get_coreferences(text):
     # text = u"John and Mary paint. They both like pie."
@@ -303,6 +318,3 @@ if __name__ == '__main__':
     # for tok in doc:
     #     print (tok.text, tok.dep_, tok.head)
     show_dependencies(doc)
-
-
-

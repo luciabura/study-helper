@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
 from spacy.matcher import Matcher
+from spacy.tokens import Token
 
 import question_generation.sentence_simplifier as simplifier
 from keyword_extraction.keywords_filtered import get_keywords_with_scores
@@ -64,6 +65,9 @@ def initialize_patterns():
     prep_object_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'prep'},
                      ANY_ALPHA, {DEP: 'pobj'}]
 
+    dative_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dative'},
+                     ANY_ALPHA, {DEP: 'dobj'}]
+
     agent_1 = [{DEP: 'nsubj'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'agent'}, ANY_ALPHA, {DEP: 'pobj'}]
     agent_2 = [{DEP: 'nsubjpass'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'agent'}, ANY_ALPHA, {DEP: 'pobj'}]
 
@@ -83,50 +87,96 @@ def sort_scores(scores):
     return sorted_scores
 
 
-def prepare_question_verb(verb, sentence, includes_subject):
-    # Have to check verb for more than 1 word => needn't prepare question verb
-    # eg: can take, will see, etc
-    vp = get_verb_phrase(verb, sentence)
-    q_verb = []
+def get_verb_form(verb, needs_helper=False):
+    verb_components = []
+    if verb is None:
+        return
 
-    if len(vp) > 1:
-        # This means we already have a composite verb
-        q_verb = []
-        # Should find better way to treat special cases
-        if not includes_subject and (vp[0].text == 'am' or vp[0].text == 'are'):
-            q_verb.append('is')
-        elif not includes_subject and vp[0].text == 'were':
-            q_verb.append('was')
-        elif not includes_subject and vp[0].text == 'have':
-            q_verb.append('has')
-        else:
-            q_verb.append(vp[0].text)
+    if not isinstance(verb, Token):
+        print('Wrong parameter given. Expected Token item.')
+        return
 
-        q_verb.extend([tok.text for tok in vp[1:]])
-        return q_verb
+    if "'" in verb.lower_:
+        verb_components.append(correct_short_verb_form(verb))
 
-    if is_past_tense(verb):
-        if includes_subject and verb is not 'was':
+    elif is_past_tense(verb):
+        if needs_helper and verb.lower_ != 'was':
             # Who did Harry meet? from Harry met Sally.
-            q_verb.append('did')
-            q_verb.append(verb.lemma_)
+            verb_components.append('did')
+            verb_components.append(verb.lemma_)
         else:
             # Who met Harry? from Harry met Sally.
-            q_verb.append(verb.text)
+            verb_components.append(verb.lower_)
 
     else:
         if is_3rd_person(verb):
-            if includes_subject and verb.text != 'is':
+            if needs_helper and verb.lower_ != 'is':
                 # Where does Harry go? from Harry goes to the store.
-                q_verb.append('does')
-                q_verb.append(verb.lemma_)
+                verb_components.append('does')
+                verb_components.append(verb.lemma_)
             else:
                 # Who goes to the store? from Harry goes to the store
-                q_verb.append(verb.text)
+                verb_components.append(verb.lower_)
         else:
-            q_verb.append(verb.text)
+            verb_components.append(verb.lower_)
 
-    return q_verb
+    return verb_components
+
+
+def correct_short_verb_form(token_verb):
+    if "'" in token_verb.lower_:
+        return token_verb.lemma_.lower()
+    else:
+        return token_verb.lower_
+
+
+def prepare_question_verb(vp, includes_subject):
+    # Have to check verb for more than 1 word => needn't prepare question verb
+    # eg: can take, will see, etc
+
+    if len(vp) == 1:
+        return get_verb_form(vp[0], includes_subject)
+
+    else:
+        # This means we have a composite verb
+        q_verb = []
+        # Should find better way to treat special cases
+        if not includes_subject and vp[0].lemma_.lower() == 'be':
+            if is_past_tense(vp[0]):
+                # They were not here -> Who was not here?
+                q_verb.append('was')
+            else:
+                # They are not here -> Who is not here?
+                q_verb.append('is')
+
+        elif not includes_subject and vp[0].lemma_.lower() == 'have' and not is_past_tense(vp[0]):
+            # X have seen Y. -> Who has seen Y? (includes_subject = false)
+            q_verb.append('has')
+
+        elif vp[0].dep_ == 'neg' and includes_subject:
+            q_verb.append(vp[0].lower_)
+            for tok in vp[1:]:
+                if tok.lemma_ == 'do' and tok.dep_ != 'ROOT':
+                    q_verb.insert(0, tok.lower_)
+                    q_verb.extend(list(map(correct_short_verb_form, [v for v in vp[1:] if v.i > tok.i])))
+                    break
+
+                elif tok.dep_ == 'ROOT':
+                    # X never saw Y => X did never see Y => Who did X never see?
+                    verb_with_helper = get_verb_form(tok, needs_helper=True)
+                    q_verb.insert(0, verb_with_helper[0])
+                    q_verb.append(verb_with_helper[1])
+
+                else:
+                    q_verb.append(correct_short_verb_form(tok))
+
+            return q_verb
+
+        else:
+            q_verb.append(correct_short_verb_form(vp[0]))
+
+        q_verb.extend(list(map(correct_short_verb_form, [tok for tok in vp[1:]])))
+        return q_verb
 
 
 def format_phrase(span):
@@ -155,12 +205,13 @@ def generate_prepositional_questions(match):
 
     subject_phrase = extract_noun_phrase(subject, sentence)
     pobject_phrase = extract_noun_phrase(preposition, sentence)
+    verb_phrase = get_verb_phrase(verb, sentence)
 
     wh_word_subject = choose_wh_word(subject_phrase)
     wh_word_pobject = choose_wh_word(pobject_phrase)
 
-    verb_form_with_subject = prepare_question_verb(verb, sentence, includes_subject=True)
-    verb_form_with_pobject = prepare_question_verb(verb, sentence, includes_subject=False)
+    verb_form_with_subject = prepare_question_verb(verb_phrase, includes_subject=True)
+    verb_form_with_pobject = prepare_question_verb(verb_phrase, includes_subject=False)
 
     if is_valid_subject(subject_phrase):
         question = [wh_word_pobject]
@@ -204,12 +255,13 @@ def generate_agent_questions(match):
 
     subject_phrase = extract_noun_phrase(subject, sentence)
     pobject_phrase = extract_noun_phrase(pobject, sentence)
+    verb_phrase = get_verb_phrase(verb, sentence)
 
     wh_word_subject = choose_wh_word(subject_phrase)
     wh_word_pobject = choose_wh_word(pobject_phrase)
 
-    verb_form_with_subject = prepare_question_verb(verb, sentence, includes_subject=True) + [by_prep.text]
-    verb_form_with_pobject = prepare_question_verb(verb, sentence, includes_subject=False) + [by_prep.text]
+    verb_form_with_subject = prepare_question_verb(verb_phrase, includes_subject=True) + [by_prep.text]
+    verb_form_with_pobject = prepare_question_verb(verb_phrase, includes_subject=False) + [by_prep.text]
 
     if is_valid_subject(subject_phrase):
         question = [wh_word_pobject]
@@ -279,9 +331,10 @@ def generate_attribute_questions(match):
 
     wh_word_subject = choose_wh_word(subject_phrase)
     wh_word_attribute = choose_wh_word(attribute)
+    verb_phrase = get_verb_phrase(verb, sentence)
 
-    verb_form_with_subject = prepare_question_verb(verb, sentence, includes_subject=True)
-    verb_form_with_attribute = prepare_question_verb(verb, sentence, includes_subject=False)
+    verb_form_with_subject = prepare_question_verb(verb_phrase, includes_subject=True)
+    verb_form_with_attribute = prepare_question_verb(verb_phrase, includes_subject=False)
 
     if is_valid_subject(subject_phrase):
         questions.append('Describe or define ' + format_phrase(subject_phrase) + '.')
@@ -324,12 +377,13 @@ def generate_dobj_questions(match):
 
     subject_phrase = extract_noun_phrase(subject, sentence)
     direct_object_phrase = extract_noun_phrase(direct_object, sentence)
+    verb_phrase = get_verb_phrase(verb, sentence)
 
     wh_word_subject = choose_wh_word(subject_phrase)
     wh_word_object = choose_wh_word(direct_object_phrase)
 
-    verb_form_with_subject = prepare_question_verb(verb, sentence, includes_subject=True)
-    verb_form_with_object = prepare_question_verb(verb, sentence, includes_subject=False)
+    verb_form_with_subject = prepare_question_verb(verb_phrase, includes_subject=True)
+    verb_form_with_object = prepare_question_verb(verb_phrase, includes_subject=False)
 
     if is_valid_subject(subject_phrase):
         questions.append('Describe the relation or interaction between '
@@ -408,9 +462,17 @@ def trial_sentences():
 
     text = NLP(u"Apple's logo was designed by Steve Jobs in early december 2006 in front of the Empire State Building.")
     text = NLP(u'John never believed that Hamilton shot Aaron Burr.')
+    text = NLP(u"He hasn't yet seen the sun.")
     # TODO: THIS CASE NEEDS TO BE TREATED sth ... verb past tense -> is not treated
 
-    show_dependencies(doc8, port=5001)
+    text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
+    text = NLP(u'Morphology: the structure of words')
+    text = NLP(u'John thought he would win the prize.')
+    text = NLP(u"However, they think this won't work.")
+    text = NLP(u"In principle, you've got it all wrong.")
+
+
+    show_dependencies(text, port=5001)
     # for nc in text.noun_chunks:
     #     print(nc)
 
@@ -431,7 +493,8 @@ def generate_q():
     # text = NLP(u'Machines for calculating fixed numerical tasks such as the abacus have existed since antiquity.')
     # text = NLP(u'The ecclesiastical parish of Navenby was originally placed in the Longoboby Rural Deanery.')
     # text = NLP(u'A router helps with packet forwarding.')
-    text = NLP(u'The handle should be attached before the mantle.')
+    # text = NLP(u'The handle should be attached before the mantle.')
+    # text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
 
     all_questions = []
 
@@ -493,5 +556,5 @@ if __name__ == '__main__':
     # sentences = list(doc.sents)
     # show_dependencies(sentences[1].as_doc(), port=5001)
     # generate_q()
-    # trial_sentences()
-    generate_questions_trial()
+    trial_sentences()
+    # generate_questions_trial()

@@ -91,7 +91,10 @@ def print_noun_chunks(sentence):
 
 
 def find_parent_verb(token, depth=1):
-    if token.dep_ == 'ROOT' or (token.pos_ == 'VERB' and depth == 0):
+    if token.dep_ == 'ROOT' and token.pos_ != 'VERB':
+        return None
+
+    elif token.dep_ == 'ROOT' or (token.pos_ == 'VERB' and depth == 0):
         return token
 
     else:
@@ -124,8 +127,8 @@ def remove_spans(sentence, spans):
         if any(tok in span for span in spans):
             continue
         sentence_text.append(tok.text)
-    sentence = NLP(' '.join(sentence_text))
-    return sentence
+    # sentence = NLP(' '.join(sentence_text))
+    return sentence_text
 
 
 def get_subtree_span(token, sentence):
