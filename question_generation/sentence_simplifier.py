@@ -5,7 +5,7 @@ from nltk.parse.stanford import StanfordParser
 from spacy import displacy
 from spacy.matcher import Matcher
 
-from neuralcoref import Coref
+# from neuralcoref import Coref
 from question_generation import *
 from text_processing.grammar import extract_noun_phrase, is_valid_sentence, find_parent_verb, \
     get_verb_correct_tense, remove_spans, get_subtree_span
@@ -46,7 +46,7 @@ def extract_subordinate(sentence):
 
 def extract_conjugate_sentences(match):
     sentences = []
-    sentence = match.get_sentence()
+    sentence = match.sentence
     root_verb = match.span.root
     conj_verb = match.get_last_token()
     conj = match.get_tokens_by_dependency('cc')
@@ -94,7 +94,7 @@ def appositive_sentence(appos, sentence):
 
 def extract_appositives(match):
     sentences = []
-    sentence = match.get_sentence()
+    sentence = match.sentence
 
     appos = match.get_tokens_by_dependency('appos')[0]
 
@@ -109,7 +109,7 @@ def extract_appositives(match):
 
 def extract_adjectival_modifier(match):
     _sentences = []
-    sentence = match.get_sentence()
+    sentence = match.sentence
     subject = match.get_first_token()
     adj_mod = match.get_last_token()
 
@@ -160,7 +160,7 @@ def initialize_matchers():
 
 def extract_from_punct(match):
     sents = []
-    sentence = match.get_sentence()
+    sentence = match.sentence
 
     punct_span = sentence[match.get_first_token().i + 1: match.get_last_token().i]
     first_after_punct = punct_span[0]
@@ -200,7 +200,7 @@ def extract_from_punct(match):
 
 def TP(match):
     print(match.span)
-    return [match.get_sentence()]
+    return [match.sentence]
 
 
 pattern_to_simplification = {
@@ -252,7 +252,6 @@ def sentences():
     # coref(t11)
 
 
-
 def simplify_sentence(sentence, coreferences={}):
     """The main idea is the following:
     1. Check is anything is in coreferences and resolve the sentence
@@ -286,27 +285,28 @@ def simplify_sentence(sentence, coreferences={}):
 
 
 def get_coreferences(text):
-    # text = u"John and Mary paint. They both like pie."
-    # text = u"My sister has a dog. She loves that dog."
-    coref = Coref(nlp=NLP)
-
-    # clusters = coref.one_shot_coref(utterances=u"My sister has a dog. She loves that dog.")
-    clusters = coref.one_shot_coref(utterances=text)
-    # print(clusters)
-
-    mentions = coref.get_mentions()
-    print(mentions)
-
-    # utterances = coref.get_utterances()
-    # print(utterances)
-
-    resolved_utterance_text = coref.get_resolved_utterances()
-    print(resolved_utterance_text)
-
-    coreferences = coref.get_most_representative()
-    print(coreferences)
-
-    return coreferences, resolved_utterance_text
+    pass
+    #     # text = u"John and Mary paint. They both like pie."
+    #     # text = u"My sister has a dog. She loves that dog."
+    #     coref = Coref(nlp=NLP)
+    #
+    #     # clusters = coref.one_shot_coref(utterances=u"My sister has a dog. She loves that dog.")
+    #     clusters = coref.one_shot_coref(utterances=text)
+    #     # print(clusters)
+    #
+    #     mentions = coref.get_mentions()
+    #     print(mentions)
+    #
+    #     # utterances = coref.get_utterances()
+    #     # print(utterances)
+    #
+    #     resolved_utterance_text = coref.get_resolved_utterances()
+    #     print(resolved_utterance_text)
+    #
+    #     coreferences = coref.get_most_representative()
+    #     print(coreferences)
+    #
+    #     return coreferences, resolved_utterance_text
 
 
 def show_dependencies(sentence, port=5000):

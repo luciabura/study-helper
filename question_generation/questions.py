@@ -6,11 +6,11 @@ from spacy.tokens import Token
 import question_generation.sentence_simplifier as simplifier
 from keyword_extraction.keywords_filtered import get_keywords_with_scores
 from question_generation import *
-from summarization.summary import get_sentences_with_keywords_and_scores
+from summarization.summary import get_sentences_with_keywords_and_scores, get_top_sentences
 from text_processing import preprocessing as preprocess
 from text_processing.grammar import has_pronouns, extract_noun_phrase, get_verb_phrase, is_past_tense, is_3rd_person, \
     is_valid_subject, show_dependencies
-from text_processing.preprocessing import clean_and_format
+from text_processing.preprocessing import clean_and_format, sentence_tokenize
 from utilities import NLP
 from utilities.read_write import read_file
 
@@ -193,7 +193,7 @@ def format_phrase(span):
 
 def generate_prepositional_questions(match):
     questions = []
-    sentence = match.get_sentence()
+    sentence = match.sentence
     subject = match.get_first_token()
     pobject = match.get_last_token()
     verb = subject.head
@@ -247,7 +247,7 @@ def generate_prepositional_questions(match):
 def generate_agent_questions(match):
     """Only matches the by agent preposition"""
     questions = []
-    sentence = match.get_sentence()
+    sentence = match.sentence
     subject = match.get_first_token()
     pobject = match.get_last_token()
     by_prep = pobject.head
@@ -322,7 +322,7 @@ def generate_agent_questions(match):
 def generate_attribute_questions(match):
     """Gets a match object for the attribute pattern. Returns a list of questions"""
     questions = []
-    sentence = match.get_sentence()
+    sentence = match.sentence
     subject = match.get_first_token()
     verb = subject.head
 
@@ -366,7 +366,7 @@ def generate_attribute_questions(match):
 
 def generate_dobj_questions(match):
     questions = []
-    sentence = match.get_sentence()
+    sentence = match.sentence
     direct_object = match.get_last_token()
     subject = match.get_first_token()
     verb = subject.head
@@ -494,7 +494,7 @@ def generate_q():
     # text = NLP(u'The ecclesiastical parish of Navenby was originally placed in the Longoboby Rural Deanery.')
     # text = NLP(u'A router helps with packet forwarding.')
     # text = NLP(u'The handle should be attached before the mantle.')
-    # text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
+    text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
 
     all_questions = []
 
@@ -513,10 +513,15 @@ def generate_q():
 
 def generate_questions_trial():
     text = read_file(input('Filepath: '))
-    text = clean_and_format(text)
+    all_sentences = sentence_tokenize(text)
+
+    keywords =
+    top_sentences = get_top_sentences(all_sentences)
+
+    # text = clean_and_format(text)
     # coreferences, resolved = get_coreferences(text)
 
-    text_as_doc = preprocess.clean_and_tokenize(text)
+    # text_as_doc = preprocess.clean_and_tokenize(text)
 
     initialize_patterns()
     sentences = [sent.as_doc() for sent in text_as_doc.sents]
