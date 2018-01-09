@@ -58,7 +58,12 @@ def is_valid_sentence(sentence):
     :param sentence:
     :return:
     """
+
     return True
+
+
+def is_vowel(character):
+    return character.lower() in ["a", "e", "i", "o", "u"]
 
 
 def is_past_tense(token):

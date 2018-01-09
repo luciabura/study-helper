@@ -6,15 +6,14 @@ from spacy.tokens import Token
 import question_generation.sentence_simplifier as simplifier
 from keyword_extraction.keywords_filtered import get_keywords_with_scores
 from question_generation import *
+from summarization.sentence_provider import SentenceProvider
 from summarization.summary import get_sentences_with_keywords_and_scores, get_top_sentences
 from text_processing import preprocessing as preprocess
 from text_processing.grammar import has_pronouns, extract_noun_phrase, get_verb_phrase, is_past_tense, is_3rd_person, \
-    is_valid_subject, show_dependencies
+    is_valid_subject, show_dependencies, is_vowel
 from text_processing.preprocessing import clean_and_format, sentence_tokenize
 from utilities import NLP
 from utilities.read_write import read_file
-
-MATCHER = Matcher(NLP.vocab)
 
 WHO_ENTS = ['PERSON', 'NORP']
 WHEN_ENTS = ['DATE']
@@ -22,6 +21,37 @@ WHERE_ENTS = ['LOCATION', 'FACILITY', 'ORG', 'LOC', 'GPE']
 HOW_MUCH_ENTS = ['MONEY', 'PERCENT']
 WHEN_PREPS = ['before', 'after', 'since', 'until', 'when']
 WHERE_PREPS = ['to', 'on', 'at', 'over', 'in', 'behind', 'above', 'below', 'from', 'inside', 'outside']
+
+MATCHER = Matcher(NLP.vocab)
+
+
+def initialize_question_patterns():
+    # This will match wrongly on is created, was made etc
+    attribute_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'attr'}]
+    attribute_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'attr'}]
+
+    direct_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'}]
+    direct_object_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'}]
+
+    prep_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'prep'},
+                     ANY_ALPHA, {DEP: 'pobj'}]
+    prep_object_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'prep'},
+                     ANY_ALPHA, {DEP: 'pobj'}]
+
+    dative_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dative'},
+                     ANY_ALPHA, {DEP: 'dobj'}]
+
+    agent_1 = [{DEP: 'nsubj'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'agent'}, ANY_ALPHA, {DEP: 'pobj'}]
+    agent_2 = [{DEP: 'nsubjpass'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'agent'}, ANY_ALPHA, {DEP: 'pobj'}]
+
+    MATCHER.add("ATTR", None, attribute_1)
+    MATCHER.add("ATTR", None, attribute_2)
+    MATCHER.add("DOBJ", None, direct_object_1)
+    MATCHER.add("DOBJ", None, direct_object_2)
+    MATCHER.add("POBJ", None, prep_object_1)
+    MATCHER.add("POBJ", None, prep_object_2)
+    MATCHER.add("AGENT", None, agent_1)
+    MATCHER.add("AGENT", None, agent_2)
 
 
 def choose_wh_word(span):
@@ -52,42 +82,29 @@ def choose_wh_word(span):
     return wh_word
 
 
-def initialize_patterns():
-    # This will match wrongly on is created, was made etc
-    attribute_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'attr'}]
-    attribute_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'attr'}]
-
-    direct_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'}]
-    direct_object_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'}]
-
-    prep_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'prep'},
-                     ANY_ALPHA, {DEP: 'pobj'}]
-    prep_object_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'prep'},
-                     ANY_ALPHA, {DEP: 'pobj'}]
-
-    dative_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dative'},
-                     ANY_ALPHA, {DEP: 'dobj'}]
-
-    agent_1 = [{DEP: 'nsubj'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'agent'}, ANY_ALPHA, {DEP: 'pobj'}]
-    agent_2 = [{DEP: 'nsubjpass'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'agent'}, ANY_ALPHA, {DEP: 'pobj'}]
-
-    MATCHER.add("ATTR", None, attribute_1)
-    MATCHER.add("ATTR", None, attribute_2)
-    MATCHER.add("DOBJ", None, direct_object_1)
-    MATCHER.add("DOBJ", None, direct_object_2)
-    MATCHER.add("POBJ", None, prep_object_1)
-    MATCHER.add("POBJ", None, prep_object_2)
-    MATCHER.add("AGENT", None, agent_1)
-    MATCHER.add("AGENT", None, agent_2)
-
-
 def sort_scores(scores):
     sorted_scores = OrderedDict(sorted(scores.items(), key=lambda t: t[1], reverse=True))
 
     return sorted_scores
 
 
-def get_verb_form(verb, needs_helper=False):
+def conjugate_verb(verb):
+    if verb.tag_ == "VBP":
+        if verb.lower_.endswith(("sh", "ch", "tch", "x", "x", "ss", "o")):
+            return verb.lower_ + "es"
+        elif verb.lower_.endswith("y"):
+            last_2_chars = verb.lower_[-2:]
+            if not is_vowel(last_2_chars[0]):
+                return verb.lower_[:-2] + "ies"
+            else:
+                return verb.lower_ + "s"
+        else:
+            return verb.lower_ + "s"
+    else:
+        return verb.lower_
+
+
+def get_verb_form(verb, includes_subject=False):
     verb_components = []
     if verb is None:
         return
@@ -100,7 +117,7 @@ def get_verb_form(verb, needs_helper=False):
         verb_components.append(correct_short_verb_form(verb))
 
     elif is_past_tense(verb):
-        if needs_helper and verb.lower_ != 'was':
+        if includes_subject and verb.lower_ != 'was':
             # Who did Harry meet? from Harry met Sally.
             verb_components.append('did')
             verb_components.append(verb.lemma_)
@@ -110,7 +127,7 @@ def get_verb_form(verb, needs_helper=False):
 
     else:
         if is_3rd_person(verb):
-            if needs_helper and verb.lower_ != 'is':
+            if includes_subject and verb.lower_ != 'is':
                 # Where does Harry go? from Harry goes to the store.
                 verb_components.append('does')
                 verb_components.append(verb.lemma_)
@@ -118,7 +135,14 @@ def get_verb_form(verb, needs_helper=False):
                 # Who goes to the store? from Harry goes to the store
                 verb_components.append(verb.lower_)
         else:
-            verb_components.append(verb.lower_)
+            if not includes_subject and verb.lower_ == 'are':
+                verb_components.append('is')
+            elif not includes_subject and verb.lower_ == 'have':
+                verb_components.append('has')
+            elif not includes_subject:
+                verb_components.append(conjugate_verb(verb))
+            else:
+                verb_components.append(verb.lower_)
 
     return verb_components
 
@@ -153,7 +177,7 @@ def prepare_question_verb(vp, includes_subject):
             # X have seen Y. -> Who has seen Y? (includes_subject = false)
             q_verb.append('has')
 
-        elif vp[0].dep_ == 'neg' and includes_subject:
+        elif includes_subject and vp[0].dep_ == 'neg':
             q_verb.append(vp[0].lower_)
             for tok in vp[1:]:
                 if tok.lemma_ == 'do' and tok.dep_ != 'ROOT':
@@ -163,7 +187,7 @@ def prepare_question_verb(vp, includes_subject):
 
                 elif tok.dep_ == 'ROOT':
                     # X never saw Y => X did never see Y => Who did X never see?
-                    verb_with_helper = get_verb_form(tok, needs_helper=True)
+                    verb_with_helper = get_verb_form(tok, includes_subject=True)
                     q_verb.insert(0, verb_with_helper[0])
                     q_verb.append(verb_with_helper[1])
 
@@ -470,7 +494,12 @@ def trial_sentences():
     text = NLP(u'John thought he would win the prize.')
     text = NLP(u"However, they think this won't work.")
     text = NLP(u"In principle, you've got it all wrong.")
+    # What did he come up with?
+    text = NLP(u"He came up with the idea of a time machine.")
+    text = NLP(u"They were looking forward to finishing the lesson on RISC architecture.")
 
+    text = NLP(u"the essential elements are an")
+    text = NLP(u"A car is red. It was seen down the highway.")
 
     show_dependencies(text, port=5001)
     # for nc in text.noun_chunks:
@@ -480,7 +509,7 @@ def trial_sentences():
 
 
 def generate_q():
-    initialize_patterns()
+    initialize_question_patterns()
     # text = NLP(u'Computer Science is the study of both practical and theoretical approaches to computers.')
     # text = NLP(u'A router is a networking device that forwards data packets between computer networks.')
     # text = NLP(u"Stacy went to see Johnny at the store.")
@@ -513,33 +542,43 @@ def generate_q():
 
 def generate_questions_trial():
     text = read_file(input('Filepath: '))
-    all_sentences = sentence_tokenize(text)
+    document = preprocess.clean_and_tokenize(text)
 
-    keywords =
-    top_sentences = get_top_sentences(all_sentences)
+    sentence_provider = SentenceProvider(document)
 
+    top_sentences = sentence_provider.get_top_sentences()
+
+    for sent in top_sentences:
+        print(sent.as_doc)
+
+    trial_sents = [top_sentences[0]]
     # text = clean_and_format(text)
     # coreferences, resolved = get_coreferences(text)
 
     # text_as_doc = preprocess.clean_and_tokenize(text)
 
-    initialize_patterns()
-    sentences = [sent.as_doc() for sent in text_as_doc.sents]
+    initialize_question_patterns()
     all_questions = set([])
-    for sentence in sentences:
-        simplified_sentences = simplifier.simplify_sentence(sentence)
+    for sentence in top_sentences:
+        simplified_sentences = simplifier.simplify_sentence(sentence.text)
         for s in simplified_sentences:
+            # print(s)
             matches = MATCHER(s)
             for ent_id, start, end in matches:
                 match = Match(ent_id, start, end, s)
                 pattern_name = NLP.vocab.strings[ent_id]
+
+                # print(pattern_name)
+
                 questions = handle_match(pattern_name)(match)
                 if questions:
                     for question in questions:
                         all_questions.add(question)
 
-    # for question in all_questions:
-    #     print(question)
+    print("\n Questions: \n")
+
+    for question in all_questions:
+        print(question)
 
 
 # Switch statement, sort of
@@ -561,5 +600,5 @@ if __name__ == '__main__':
     # sentences = list(doc.sents)
     # show_dependencies(sentences[1].as_doc(), port=5001)
     # generate_q()
-    trial_sentences()
-    # generate_questions_trial()
+    # trial_sentences()
+    generate_questions_trial()

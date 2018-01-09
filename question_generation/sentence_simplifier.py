@@ -20,14 +20,47 @@ model_path = os.path.join(__location__, "stanford_parser/stanford-parser-models.
 
 PARSER = StanfordParser(model_path=parser_path, path_to_jar=jar_path, path_to_models_jar=model_path)
 
-MATCHER = Matcher(NLP.vocab)
-
 REL_PRONS_REM = ['which', 'who']
 REL_PRON_ADD = ['where', 'when', 'what']
 
+MATCHER = Matcher(NLP.vocab)
+
+
+def initialize_matcher_patterns():
+    # IS_SUBJ = NLP.vocab.add_flag(lambda tok: tok.dep_ in ['nsubj', 'nsubjpass'])
+
+    appositive = [{DEP: 'appos'}]
+    conjoined_sentences_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN,
+                             {POS: 'VERB', DEP: 'conj'}]
+    conjoined_sentences_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN,
+                             {POS: 'VERB', DEP: 'conj'}]
+
+    # conjoined_subjects_1 = [{DEP: 'nsubj'}, ANY, {DEP: 'cc'}, ANY, {DEP: 'conj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}]
+    # conjoined_subjects_2 = [{DEP: 'nsubjpass'}, ANY, {DEP: 'cc'}, ANY, {DEP: 'conj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}]
+
+    commas = [{ORTH: ','}, ANY_ALPHA, {ORTH: ','}]
+    parenthesis = [{ORTH: '('}, ANY_ALPHA, {ORTH: ')'}]
+
+    adjectival_modifier = [{POS: 'NOUN'}, {DEP: 'acl'}]
+
+    # test_pattern = [{DEP: 'ROOT', POS: 'VERB'}, ANY, {DEP: 'conj', POS: 'VERB'}] #, ANY, {POS: 'VERB', DEP: 'conj'}]
+    # test_pattern = [{DEP: 'nsubj'}, ANY, {DEP: 'conj'}]
+    test_pattern = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB'}, ANY_TOKEN, {DEP: 'nsubj'}]
+
+    MATCHER.add("APPOS", None, appositive)
+    MATCHER.add("CONJ_SENT", None, conjoined_sentences_1)
+    MATCHER.add("CONJ_SENT", None, conjoined_sentences_2)
+    MATCHER.add("PUNCT", None, commas)
+    MATCHER.add("PUNCT", None, parenthesis)
+    MATCHER.add("ACL", None, adjectival_modifier)
+    # MATCHER.add("TP", None, test_pattern)
+
 
 def post_process(sentence):
-    """TODO:implement"""
+    """
+    TODO: add check for trailing punctuation
+    TODO: check if subject is a pronoun
+    """
     pass
 
 
@@ -48,17 +81,18 @@ def extract_conjugate_sentences(match):
     sentences = []
     sentence = match.sentence
     root_verb = match.span.root
-    conj_verb = match.get_last_token()
-    conj = match.get_tokens_by_dependency('cc')
+    conj = match.get_token_by_attributes(dependency='cc', head=root_verb)
+    conj_root_verb = sentence[(conj.i + 1):].root
 
-    if conj_verb.head != root_verb:
-        return sentence
+    if conj_root_verb.head != root_verb:
+        print(conj_root_verb, root_verb)
+        return sentence.string.strip()
 
-    conj_subtree = get_subtree_span(conj_verb, sentence)
+    conj_subtree = get_subtree_span(conj_root_verb, sentence)
 
     # conj_sent = NLP(' '.join([tok.text for tok in conj_subtree]))
     conj_sent = [tok.text for tok in conj_subtree]
-    root_sent = remove_spans(sentence, [conj_subtree, conj])
+    root_sent = remove_spans(sentence, [conj_subtree, [conj]])
 
     sentences.append(conj_sent)
     sentences.append(root_sent)
@@ -69,7 +103,6 @@ def extract_conjugate_sentences(match):
 def appositive_sentence(appos, sentence):
     dependant = appos.head
     appositive_np = extract_noun_phrase(appos, sentence)
-    print(appositive_np)
     dependant_np = extract_noun_phrase(dependant, sentence, exclude_span=appositive_np)
 
     parent_verb = find_parent_verb(dependant)
@@ -89,6 +122,7 @@ def appositive_sentence(appos, sentence):
     # s += '.'
 
     # sentence = NLP(s)
+
     return appositive_sent, appositive_np
 
 
@@ -96,7 +130,7 @@ def extract_appositives(match):
     sentences = []
     sentence = match.sentence
 
-    appos = match.get_tokens_by_dependency('appos')[0]
+    appos = match.get_token_by_attributes(dependency='appos')
 
     appositive_sent, appositive_np = appositive_sentence(appos, sentence)
 
@@ -128,50 +162,19 @@ def extract_adjectival_modifier(match):
     return _sentences
 
 
-def initialize_matchers():
-    # IS_SUBJ = NLP.vocab.add_flag(lambda tok: tok.dep_ in ['nsubj', 'nsubjpass'])
-
-    appositive = [{DEP: 'appos'}]
-    conjoined_sentences_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA,
-                             {POS: 'VERB', DEP: 'conj'}]
-    conjoined_sentences_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA,
-                             {POS: 'VERB', DEP: 'conj'}]
-
-    # conjoined_subjects_1 = [{DEP: 'nsubj'}, ANY, {DEP: 'cc'}, ANY, {DEP: 'conj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}]
-    # conjoined_subjects_2 = [{DEP: 'nsubjpass'}, ANY, {DEP: 'cc'}, ANY, {DEP: 'conj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}]
-
-    commas = [{ORTH: ','}, ANY_ALPHA, {ORTH: ','}]
-    parenthesis = [{ORTH: '('}, ANY_ALPHA, {ORTH: ')'}]
-
-    adjectival_modifier = [{POS: 'NOUN'}, {DEP: 'acl'}]
-
-    # test_pattern = [{DEP: 'ROOT', POS: 'VERB'}, ANY, {DEP: 'conj', POS: 'VERB'}] #, ANY, {POS: 'VERB', DEP: 'conj'}]
-    # test_pattern = [{DEP: 'nsubj'}, ANY, {DEP: 'conj'}]
-    test_pattern = [{DEP: 'nsubj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}]
-
-    MATCHER.add("APPOS", None, appositive)
-    MATCHER.add("CONJ_SENT", None, conjoined_sentences_1)
-    MATCHER.add("CONJ_SENT", None, conjoined_sentences_2)
-    MATCHER.add("PUNCT", None, commas)
-    MATCHER.add("PUNCT", None, parenthesis)
-    MATCHER.add("ACL", None, adjectival_modifier)
-    # MATCHER.add("TP", None, test_pattern)
-
-
 def extract_from_punct(match):
     sents = []
-    sentence = match.sentence
 
-    punct_span = sentence[match.get_first_token().i + 1: match.get_last_token().i]
+    punct_span = match.sentence[match.get_first_token().i + 1: match.get_last_token().i]
     first_after_punct = punct_span[0]
 
-    sentence = remove_spans(sentence, spans=[match.span])
+    sentence = remove_spans(match.sentence, spans=[match.span])
 
     punct_sent = []
     # Ensure relative clause is treated, may move this to separate pattern match
     for token in punct_span:
         if token.dep_ == 'relcl':
-            subject_np = extract_noun_phrase(token.head, sentence, exclude_span=match.span)
+            subject_np = extract_noun_phrase(token.head, match.sentence, exclude_span=match.span)
             if subject_np is None:
                 continue
 
@@ -200,7 +203,7 @@ def extract_from_punct(match):
 
 def TP(match):
     print(match.span)
-    return [match.sentence]
+    return []
 
 
 pattern_to_simplification = {
@@ -235,21 +238,34 @@ def sentences():
         u'Architects and product designers need a thorough technical grasp of the materials they work with, but the success of their work depends on the creative application of this technical knowledge.')
     t11 = NLP(u'John writes and Mary paints. They both like pie.')
     t12 = NLP(u'In principle, the RBMs can be trained separately and then fine-tuned in combination.')
-    t13 = NLP(
-        u'One interesting aspect of word2vec training is the use of negative sampling instead of softmax (which is computationally very expensive)')
+    t13 = NLP(u'One interesting aspect of word2vec training is the use of negative sampling instead of softmax (which is computationally very expensive)')
     t14 = NLP(u'The heavy rain, which was unusual for that time of year, destroyed most of the plants in my garden.')
     t15 = NLP(u'The rule derived by Andrej can be used freely nowadays.')
     t16 = NLP(u'They experimented on the people fired last year.')
     t17 = NLP(u'They kept thinking about a way to escape.')
     t18 = NLP(u'He came up with the idea of a time machine.')
+    t19 = NLP(u"They were looking forward to finishing the lesson on RISC architecture.")
+    t20 = NLP(u"He runs, but he is too slow for them.")
+    t21 = NLP(u"A computer science course does not provide sufficient time for this kind of training in creative design, but it can provide the essential elements: an understanding of the user’s needs, and an understanding of potential solutions. ")
+
+
+    # up is dep_ = 'prt'
+
     # sent, appositive = extract_appositives(t2)
     # print(sent)
     # print(appositive)
 
-    # show_dependencies(t18)
+    # show_dependencies(t20)
     # print([(tok.dep_, tok.pos_) for tok in t10])
-    simplify_sentence(t13)
+    for s in simplify_sentence(t21):
+        print(s)
+
     # coref(t11)
+
+
+def make_spacy_sentence(text_list):
+    doc = NLP(' '.join(text_list))
+    return doc
 
 
 def simplify_sentence(sentence, coreferences={}):
@@ -257,30 +273,37 @@ def simplify_sentence(sentence, coreferences={}):
     1. Check is anything is in coreferences and resolve the sentence
     2. Run matcher against sentence and extract sentences appropriately -> consider case """
 
-    initialize_matchers()
+    initialize_matcher_patterns()
     sentences_ = []
+    seen_sents = []
 
     queue = Queue()
-    queue.put(sentence)
+    queue.put(NLP(sentence))
     while not queue.empty():
         sent = queue.get()
         matches = MATCHER(sent)
 
-        if sent not in sentences:
+        if sent not in sentences_:
             sentences_.append(sent)
 
         for ent_id, start, end in matches:
             match = Match(ent_id, start, end, sent)
             pattern_name = NLP.vocab.strings[ent_id]
-            # print(pattern_name)
-            simplified_sentences = handle_match(pattern_name)(match)
+
+            print(pattern_name)
+            # print(match.span)
+
+            sentence_components = list(filter(lambda s: s not in seen_sents,
+                                              handle_match(pattern_name)(match)))
+            seen_sents.extend(sentence_components)
+
+            simplified_sentences = list(map(make_spacy_sentence, sentence_components))
+
             for s in simplified_sentences:
-                if s not in sentences_:
-                    sentences_.append(s)
+                sentences_.append(s)
                 queue.put(s)
 
-    nlp_sentences = list(map(NLP, sentences_))
-    valid_sentences = filter(is_valid_sentence, nlp_sentences)
+    valid_sentences = list(filter(is_valid_sentence, sentences_))
     return valid_sentences
 
 
@@ -317,4 +340,5 @@ if __name__ == '__main__':
     doc = NLP(u'The set of natural numbers is countably infinite and different from the compatibility of systems.')
     # for tok in doc:
     #     print (tok.text, tok.dep_, tok.head)
-    show_dependencies(doc)
+    # show_dependencies(doc)
+    sentences()
