@@ -1,9 +1,11 @@
 from baselines.keyword_baseline import get_keywords as get_baseline_keywords
 from keyword_extraction.keywords import get_keywords as get_graph_keywords
 from keyword_extraction.keywords_TR import get_keywords as get_graph_keywords_2
-from keyword_extraction.keywords_TR_lem import get_keywords as get_graph_keywords_3
+from keyword_extraction.keywords_TR_lem import KeywordProvider
 from keyword_extraction.keywords_filtered import get_keywords as get_graph_keywords_4
 from nltk.metrics.scores import f_measure, precision, recall
+
+from utilities import NLP
 from utilities.read_write import read_file
 from text_processing.preprocessing import clean_and_tokenize
 from gensim.summarization import keywords as gensim_keywords
@@ -129,6 +131,8 @@ if __name__ == '__main__':
     REFERENCE_PATH = input('Enter a file path for reference keywords: ')
 
     FILE_TEXT = read_file(FILE_PATH)
+    keyword_provider = KeywordProvider(NLP(FILE_TEXT))
+
     REFERENCE_TEXT = read_file(REFERENCE_PATH)
     REFERENCE_KEYWORDS = get_reference_keywords(REFERENCE_TEXT)
     REFERENCE_NGRAMS = get_reference_ngrams(REFERENCE_TEXT)
@@ -136,7 +140,7 @@ if __name__ == '__main__':
     # Get keyphrases from each implementation
     graph_keyphrases = get_graph_keywords(FILE_TEXT)
     keyphrases_TR = get_graph_keywords_2(FILE_TEXT)
-    keyphrases_TR_lem = get_graph_keywords_3(FILE_TEXT)
+    keyphrases_TR_lem = keyword_provider.show_key_phrases(trim=True)
     keyphrases_filtered = get_graph_keywords_4(FILE_TEXT, filter=True)
 
     # Get the baselines keywords
