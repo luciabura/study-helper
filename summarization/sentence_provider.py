@@ -12,7 +12,6 @@ import networkx as nx
 
 from keyword_extraction.keywords_TR_lem import KeywordProvider, Keyword, KeyPhrase
 from text_processing import preprocessing as preprocess
-from utilities import NLP
 from utilities.read_write import read_file
 
 IDENTIFIER = '_A'
@@ -27,10 +26,17 @@ class Sentence(object):
         self.key_phrases = []
         self.text = self.as_doc.text
 
-        self.compute_score()
+        self.simplified_versions = []
 
     def compute_score(self):
-        pass
+        score = self.score
+        print(score)
+
+        for k in self.keywords:
+            score += k.score / math.log(len(self.keywords), 2)
+
+        print(score)
+        self.score = score
 
     def add(self, obj):
         if isinstance(obj, Keyword):
@@ -42,12 +48,17 @@ class Sentence(object):
         else:
             print('Unsupported object addition!')
 
+    def add_simplified_version(self, simplified):
+        self.simplified_versions.append(simplified)
+
 
 class SentenceProvider(object):
     def __init__(self, doc, topic=None):
-        self.keyword_provider = KeywordProvider(doc)
+        self.keyword_provider = KeywordProvider(doc, topic)
+        self.keywords = self.keyword_provider.keywords
         self.sentences = self.keyword_provider.sentences
         self.top_sentences = []
+
         self.topic = topic
 
         self.__compute_sentences()
@@ -61,6 +72,8 @@ class SentenceProvider(object):
 
         sentences_dict = self.augment_sentence_objects(sentences_dict, self.keyword_provider.keywords)
         sentences_dict = self.augment_sentence_objects(sentences_dict, self.keyword_provider.key_phrases)
+
+        self.calculate_final_scores(sentences_dict)
 
         self.top_sentences = self.sort_by_score(list(sentences_dict.values()), descending=True)
 
@@ -77,6 +90,11 @@ class SentenceProvider(object):
             return self.top_sentences
 
         return sentences
+
+    @staticmethod
+    def calculate_final_scores(sentence_dictionary):
+        for sent in sentence_dictionary.values():
+            sent.compute_score()
 
     @staticmethod
     def sort_by_score(unsorted, descending=False):
@@ -162,6 +180,15 @@ if __name__ == '__main__':
     document = preprocess.clean_and_tokenize(FILE_TEXT)
     summarizer = SentenceProvider(document)
 
-    print(summarizer.get_summary())
+    # print(summarizer.get_summary())
 
     # print_summary_to_file(get_summary, FILE_PATH, OUTPUT_DIR, IDENTIFIER)
+
+    # for keyword in summarizer.keyword_provider.keywords:
+    #     print(keyword.text, keyword.score)
+
+    for sentence in summarizer.top_sentences:
+        print(sentence.text)
+        # print(sentence.score)
+        # for keyword in sentence.keywords:
+        #     print(keyword.text)
