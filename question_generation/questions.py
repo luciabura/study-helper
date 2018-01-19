@@ -25,6 +25,20 @@ WHERE_PREPS = ['to', 'on', 'at', 'over', 'in', 'behind', 'above', 'below', 'from
 MATCHER = Matcher(NLP.vocab)
 
 
+class Question:
+    def __init__(self, question, original_sentence, answer_phrase):
+        self.question = question
+        self.original_sentence = original_sentence
+        self.answer_phrase = answer_phrase
+
+        self.score = 0
+
+        self.__compute_score()
+
+    def __compute_score(self):
+        pass
+
+
 def initialize_question_patterns():
     # This will match wrongly on is created, was made etc
     attribute_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'attr'}]
@@ -38,8 +52,25 @@ def initialize_question_patterns():
     prep_object_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'prep'},
                      ANY_ALPHA, {DEP: 'pobj'}]
 
+    d_obj_p_obj_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'},
+                     ANY_ALPHA, {DEP: 'pobj'}]
+    d_obj_p_obj_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'},
+                     ANY_ALPHA, {DEP: 'pobj'}]
+
+    d_obj_p_obj_inv_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'pobj'},
+                         ANY_ALPHA, {DEP: 'dobj'}]
+    d_obj_p_obj_inv_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'pobj'},
+                         ANY_ALPHA, {DEP: 'dobj'}]
+
     dative_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dative'},
-                     ANY_ALPHA, {DEP: 'dobj'}]
+                       ANY_ALPHA, {DEP: 'dobj'}]
+    dative_object_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dative'},
+                       ANY_ALPHA, {DEP: 'dobj'}]
+
+    dative_object_inv_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'},
+                           ANY_ALPHA, {DEP: 'dative'}]
+    dative_object_inv_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'},
+                           ANY_ALPHA, {DEP: 'dative'}]
 
     agent_1 = [{DEP: 'nsubj'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'agent'}, ANY_ALPHA, {DEP: 'pobj'}]
     agent_2 = [{DEP: 'nsubjpass'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'agent'}, ANY_ALPHA, {DEP: 'pobj'}]
@@ -52,6 +83,10 @@ def initialize_question_patterns():
     MATCHER.add("POBJ", None, prep_object_2)
     MATCHER.add("AGENT", None, agent_1)
     MATCHER.add("AGENT", None, agent_2)
+    MATCHER.add("DOBJ-POBJ", None, d_obj_p_obj_1)
+    MATCHER.add("DOBJ-POBJ", None, d_obj_p_obj_2)
+    MATCHER.add("DOBJ-POBJ", None, d_obj_p_obj_inv_1)
+    MATCHER.add("DOBJ-POBJ", None, d_obj_p_obj_inv_2)
 
 
 def choose_wh_word(span):
@@ -142,7 +177,10 @@ def get_verb_form(verb, includes_subject=False):
             elif not includes_subject:
                 verb_components.append(conjugate_verb(verb))
             else:
-                verb_components.append(verb.lower_)
+                if includes_subject and verb.lower_ != 'are':
+                    verb_components.extend(['do', verb.lower_])
+                else:
+                    verb_components.append(verb.lower_)
 
     return verb_components
 
@@ -312,6 +350,7 @@ def generate_agent_questions(match):
     questions.append(question)
 
     return questions
+
 
 # def make_questions(sentence, wh_word, subj, verb, obj, preposition=None):
 #     questions = []
@@ -489,7 +528,6 @@ def trial_sentences():
     text = NLP(u"He hasn't yet seen the sun.")
     # TODO: THIS CASE NEEDS TO BE TREATED sth ... verb past tense -> is not treated
 
-    text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
     text = NLP(u'Morphology: the structure of words')
     text = NLP(u'John thought he would win the prize.')
     text = NLP(u"However, they think this won't work.")
@@ -500,12 +538,104 @@ def trial_sentences():
 
     text = NLP(u"the essential elements are an")
     text = NLP(u"A car is red. It was seen down the highway.")
+    text = NLP(
+        u"As Drummond turned his boat seawards and proceeded back to the offshore squadron which was still engaged in an artillery duel with the German defenders, one of the missing launches, ML276 passed her, having caught up with the lost cruiser at this late stage.")
+    text = NLP(u"She bought me these books. She got these books for me. I read them one by one.")
+    text = NLP(
+        u"NLP is essentially multidisciplinary: it is closely related to linguistics (although the extent to which NLP overtly draws on linguistic theory varies considerably)")
+    text = NLP(
+        u"Like NLP, formal linguistics deals with the development of models of human languages, but some approaches in linguistics reject the validity of statistical techniques, which are seen as an essential part of computational linguistics.")
+    text = NLP(u"Compositional semantics is the construction of meaning (often expressed as logic) based on syntax.")
+    text = NLP(u"The book, which is now at the store, has sold over 1000 copies so far.")
+    text = NLP(u"The computer whose hard disk was broken was taken away.")
+    # text = NLP(u"Janoff presented Jobs with several different monochromatic themes for the “bitten” logo, and Jobs immediately took a liking to it.")
 
-    show_dependencies(text, port=5001)
+    text = NLP(u"Mark's fingerprints were found after the investigation.")
+    text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
+
+    show_dependencies(text, port=5000)
     # for nc in text.noun_chunks:
     #     print(nc)
 
     # print(get_phrase(text[7]))
+
+
+def generate_dobj_pobj_question(match):
+    subject = match.get_first_token()
+    root_verb = subject.head
+
+    preposition = match.get_token_by_attributes(dependency='prep', head=root_verb)
+    pobject = match.get_token_by_attributes(dependency='pobj', head=preposition)
+    dobject = match.get_token_by_attributes(dependency='dobj', head=root_verb)
+
+    if pobject is None \
+            or dobject is None \
+            or preposition is None:
+        return []
+
+    subject_phrase = extract_noun_phrase(subject, match.sentence)
+    wh_word_subject = choose_wh_word(subject_phrase)
+
+    pobject_phrase = extract_noun_phrase(pobject, match.sentence)
+    wh_word_pobject = choose_wh_word(match.sentence[preposition.i: pobject.i + 1])
+
+    dobject_phrase = extract_noun_phrase(dobject, match.sentence)
+    wh_word_dobject = choose_wh_word(dobject_phrase)
+
+    verb_phrase = get_verb_phrase(root_verb, match.sentence)
+    verb_form_with_subject = prepare_question_verb(verb_phrase, includes_subject=True)
+    verb_form_with_object = prepare_question_verb(verb_phrase, includes_subject=False)
+
+    questions = []
+    if is_valid_subject(subject_phrase):
+        question = [wh_word_pobject]
+        if len(verb_form_with_subject) == 1:
+            question.append(verb_form_with_subject[0])
+            question.append(format_phrase(subject_phrase))
+        else:
+            # I don't like this ... could have more than 2 in verb phrase, not in attribute, but other ones yes
+            question.append(verb_form_with_subject[0])
+            question.append(format_phrase(subject_phrase))
+            question.extend(verb_form_with_subject[1:])
+
+        question.append(format_phrase(dobject_phrase))
+        question.append(preposition.text)
+        question = ' '.join(question)
+        question += '?'
+        questions.append(question)
+
+        question = [wh_word_dobject]
+        if len(verb_form_with_subject) == 1:
+            question.append(verb_form_with_subject[0])
+            question.append(format_phrase(subject_phrase))
+        else:
+            # I don't like this ... could have more than 2 in verb phrase, not in attribute, but other ones yes
+            question.append(verb_form_with_subject[0])
+            question.append(format_phrase(subject_phrase))
+            question.extend(verb_form_with_subject[1:])
+
+        question.append(preposition.text)
+        question.append(format_phrase(pobject_phrase))
+        question = ' '.join(question)
+        question += '?'
+        questions.append(question)
+
+    question = [wh_word_subject]
+    question.extend(verb_form_with_object)
+    if pobject.i > dobject.i:
+        question.append(format_phrase(dobject_phrase))
+        question.append(preposition.text)
+        question.append(format_phrase(pobject_phrase))
+    else:
+        question.append(preposition.text)
+        question.append(format_phrase(pobject_phrase))
+        question.append(format_phrase(dobject_phrase))
+
+    question = ' '.join(question)
+    question += '?'
+    questions.append(question)
+
+    return questions
 
 
 def generate_q():
@@ -523,18 +653,21 @@ def generate_q():
     # text = NLP(u'The ecclesiastical parish of Navenby was originally placed in the Longoboby Rural Deanery.')
     # text = NLP(u'A router helps with packet forwarding.')
     # text = NLP(u'The handle should be attached before the mantle.')
-    text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
+    # text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
+    # text = NLP(u"The general took his soldiers to the hiding place.")
+    text = NLP(u"Apple’s first logo, designed by Jobs and Wayne, depicts Sir Isaac Newton sitting under an apple tree.")
 
     all_questions = []
-
-    matches = MATCHER(text)
-    for ent_id, start, end in matches:
-        match = Match(ent_id, start, end, text)
-        pattern_name = NLP.vocab.strings[ent_id]
-        # print(pattern_name)
-        questions = handle_match(pattern_name)(match)
-        if questions:
-            all_questions.extend(questions)
+    simplified = simplifier.simplify_sentence(text.text)
+    for sentence in simplified:
+        matches = MATCHER(sentence)
+        for ent_id, start, end in matches:
+            match = Match(ent_id, start, end, sentence)
+            pattern_name = NLP.vocab.strings[ent_id]
+            # print(pattern_name)
+            questions = handle_match(pattern_name)(match)
+            if questions:
+                all_questions.extend(questions)
 
     for question in all_questions:
         print(question)
@@ -573,6 +706,7 @@ def generate_questions_trial():
                 questions = handle_match(pattern_name)(match)
                 if questions:
                     for question in questions:
+                        # q = Question(question, sentence, )
                         all_questions.add(question)
 
     print("\n Questions: \n")
@@ -586,7 +720,8 @@ pattern_to_question = {
     "ATTR": lambda match: generate_attribute_questions(match),
     "POBJ": lambda match: generate_prepositional_questions(match),
     "DOBJ": lambda match: generate_dobj_questions(match),
-    "AGENT": lambda match: generate_agent_questions(match)
+    "AGENT": lambda match: generate_agent_questions(match),
+    "DOBJ-POBJ": lambda match: generate_dobj_pobj_question(match)
 }
 
 
@@ -599,6 +734,6 @@ if __name__ == '__main__':
     # doc = NLP(u'Computer Science is the study of both practical and theoretical approaches to computers. A computer scientist specializes in the theory of computation.')
     # sentences = list(doc.sents)
     # show_dependencies(sentences[1].as_doc(), port=5001)
-    # generate_q()
+    generate_q()
     # trial_sentences()
-    generate_questions_trial()
+    # generate_questions_trial()
