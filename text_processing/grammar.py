@@ -11,7 +11,7 @@ def has_pronouns(span):
     return False
 
 
-def extract_noun_phrase(token, sentence, exclude_span=None):
+def extract_noun_phrase(token, sentence, exclude_span=None, include_span=None, discard_commas=False):
     start_index = INFINITY
     end_index = -1
 
@@ -19,6 +19,10 @@ def extract_noun_phrase(token, sentence, exclude_span=None):
         """This will fail in some cases, might want to try to just get full subtree, but then need to pay attention 
         what we call it on. For now, I'm going to call it only on subjects and object so should be OK to get subtree"""
         if exclude_span and child in exclude_span:
+            continue
+        if include_span and child not in include_span:
+            continue
+        elif discard_commas and child.tag_ == ',':
             continue
         # if child.dep_.endswith("mod") \
         #         or child.dep_ == "compound" \
@@ -58,6 +62,14 @@ def is_valid_sentence(sentence):
     :param sentence:
     :return:
     """
+    # This assumes sentence is passes as doc
+    sent_span = sentence[0:]
+
+    if sent_span.root.pos_ != "VERB":
+        return False
+
+    if not any(token.dep_.startswith("nsubj") and token.head.dep_ == "ROOT" for token in sentence):
+        return False
 
     return True
 
@@ -67,7 +79,8 @@ def is_vowel(character):
 
 
 def is_past_tense(token):
-    return token.tag_ == 'VBD' or token.tag_ == 'VBN'
+    return token.tag_ == 'VBD' \
+           # or token.tag_ == 'VBN'
 
 
 def is_3rd_person(verb):
