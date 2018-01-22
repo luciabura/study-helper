@@ -14,7 +14,7 @@ from keyword_extraction.keywords_TR_lem import KeywordProvider, Keyword, KeyPhra
 from text_processing import preprocessing as preprocess
 from utilities.read_write import read_file
 
-IDENTIFIER = '_A'
+IDENTIFIER = '_C'
 WINDOW_SIZE = 2
 
 
@@ -30,12 +30,13 @@ class Sentence(object):
 
     def compute_score(self):
         score = self.score
-        print(score)
 
-        for k in self.keywords:
-            score += k.score / math.log(len(self.keywords), 2)
+        for kp in self.keywords:
+            div = math.log(len(self.keywords), 2)
+            if div == 0:
+                div = 1
+            score += kp.score / div
 
-        print(score)
         self.score = score
 
     def add(self, obj):
@@ -160,15 +161,24 @@ class SentenceProvider(object):
 
     def get_summary(self, sentence_count=None, trim=True):
 
-        top_sentences = self.get_top_sentences(sentence_count, trim)
+        top_sentences_text = [sent.text for sent in self.get_top_sentences(sentence_count, trim)]
+        sentences_text = [sent.text for sent in self.sentences]
 
         summary = []
 
-        for sent in top_sentences:
-            summary.append(sent.text)
+        for sent in sentences_text:
+            if sent in top_sentences_text:
+                summary.append(sent)
 
         summary = '\n'.join(summary)
         return summary
+
+
+def get_summary(file_text, sentence_count=None, trim=True):
+    d = preprocess.clean_and_tokenize(file_text)
+    sentence_prov = SentenceProvider(d)
+
+    return sentence_prov.get_summary(sentence_count, trim)
 
 
 if __name__ == '__main__':
@@ -180,6 +190,7 @@ if __name__ == '__main__':
     document = preprocess.clean_and_tokenize(FILE_TEXT)
     summarizer = SentenceProvider(document)
 
+    print(summarizer.get_summary(sentence_count=4))
     # print(summarizer.get_summary())
 
     # print_summary_to_file(get_summary, FILE_PATH, OUTPUT_DIR, IDENTIFIER)
@@ -187,8 +198,8 @@ if __name__ == '__main__':
     # for keyword in summarizer.keyword_provider.keywords:
     #     print(keyword.text, keyword.score)
 
-    for sentence in summarizer.top_sentences:
-        print(sentence.text)
+    # for sentence in summarizer.top_sentences:
+    #     print(sentence.text)
         # print(sentence.score)
         # for keyword in sentence.keywords:
         #     print(keyword.text)
