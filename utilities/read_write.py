@@ -15,10 +15,7 @@ def print_to_file(content, path):
     print(content, file=file)
 
 
-def print_summary_to_file(summarizer, input_path, output_dir, identifier=''):
-    file_text = read_file(input_path)
-    summary = summarizer(file_text)
-
+def print_summary_to_file(file_text, input_path, output_dir, identifier=''):
     file_name = input_path.split('/').pop()
     name_parts = file_name.split('.')
     file_ending = '.' + name_parts.pop()
@@ -32,5 +29,5 @@ def print_summary_to_file(summarizer, input_path, output_dir, identifier=''):
 
     output_file_path = os.path.join(output_dir, output_file_name)
 
-    print_to_file(summary, output_file_path)
+    print_to_file(file_text, output_file_path)
     print('Printed to: ' + str(output_file_path))
