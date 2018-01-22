@@ -9,8 +9,8 @@ key concepts when appearing within a scientific paper or teaching material.
 """
 from nltk import FreqDist
 
-from preprocessing.preprocessing import nltk_word_tokenize
-from utilities.utils import read_file
+from text_processing.preprocessing import nltk_word_tokenize
+from utilities.read_write import read_file
 
 
 def get_keywords(file_text, word_count=1):
@@ -28,7 +28,7 @@ def get_most_common(words, word_count=1):
 
 
 if __name__ == '__main__':
-    FILE_PATH = raw_input('Enter the absolute path of '
+    FILE_PATH = input('Enter the absolute path of '
                           'the file you want to extract the keywords from: \n')
     FILE_TEXT = read_file(FILE_PATH)
-    print get_keywords(FILE_TEXT, 4)
+    print(get_keywords(FILE_TEXT, 4))

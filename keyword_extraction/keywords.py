@@ -12,8 +12,8 @@ TODO: Make sure description is accurate
 """
 import networkx as nx
 
-import preprocessing.preprocessing as preprocess
-from utilities.utils import read_file
+import text_processing.preprocessing as preprocess
+from utilities.read_write import read_file
 
 WINDOW_SIZE = 2
 INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS'] # 'VBG', 'VBN', 'VBD','NNPS']
@@ -159,7 +159,7 @@ def build_lemmas(word_sequence):
     for word in word_sequence:
         lemma = preprocess.lemmatize_word(word)
         words_to_lemmas[word] = lemma
-        if lemmas_to_words.has_key(lemma):
+        if lemma in lemmas_to_words:
             lemmas_to_words[lemma].append(word)
         else:
             lemmas_to_words[lemma] = [word]
@@ -193,7 +193,7 @@ def get_keywords(text, keyword_count=10):
     graph_words = get_graph_words(text_words)
 
     words_to_lemmas, lemmas_to_words = build_lemmas(graph_words)
-    lemmas = lemmas_to_words.keys()
+    lemmas = list(lemmas_to_words.keys())
 
     keyword_graph = build_graph(lemmas)
     add_graph_edges(keyword_graph, graph_words, words_to_lemmas)
@@ -225,15 +225,15 @@ def filter_keyphrases():
 
 def get_word_with_rank(scores, word):
     # TODO:
-    print word + ": " + str(scores[word]);
+    print(word + ": " + str(scores[word]));
 
 
 def get_text_counts(words, word):
-    print words.count(word)
+    print(words.count(word))
 
 
 if __name__ == '__main__':
-    FILE_PATH = raw_input('Enter the absolute path of '
+    FILE_PATH = input('Enter the absolute path of '
                           'the file you want to extract the keywords from: \n')
     FILE_TEXT = read_file(FILE_PATH)
-    print get_keywords(FILE_TEXT, 30)
+    print(get_keywords(FILE_TEXT, 30))

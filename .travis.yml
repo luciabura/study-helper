@@ -1,14 +1,14 @@
 language: python
 
 python:
-  - "2.7"
+  - "3.5"
 
 cache: pip
 install:
   - pip install -r requirements.txt
   - python -c "import nltk; nltk.download('stopwords');nltk.download('punkt');nltk.download('wordnet');"
-  - python -m spacy download en 
-  - python -c "import spacy; spacy.load('en')"
+  - python -m spacy download en_core_web_md
+  - python -c "import spacy; spacy.load('en_core_web_md')"
 
 script:
   - pytest

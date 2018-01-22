@@ -1,0 +1,35 @@
+With the exception of some embedded software and operating system code, the success of a
+software product is determined by the humans who use the product. These notes give an
+overview of theoretical and practical approaches to making successful and usable software.
+A user-centred design process, as taught in earlier years of the tripos and experienced in
+many group design projects, provides a professional approach to creating software with
+functionality that users need. However, the availability of technical functionality does not
+guarantee that software will be practically usable. Software that is usable for its purpose is
+sometimes described by programmers as “intuitive” (easy to learn, easy to remember, easy
+to apply to new problems) or “powerful” (efficient, effective). These terms are vague and
+unscientific, but they point in the right direction. This course presents scientific approaches
+to building software applications and digital products that are “intuitive” and “powerful”.
+HCI helps us to understand why some software products are good and other software is
+bad. But sadly it is not a guaranteed formula for creating a successful product. In this sense
+it is like architecture or product design. Architects and product designers need a thorough
+technical grasp of the materials they work with, but the success of their work depends on
+the creative application of this technical knowledge. This creativity is a craft skill that in
+those disciplines is learned by working with a master designer in a studio, or from case
+studies of successful designs. A computer science course does not provide sufficient time
+for this kind of training in creative design, but it can provide the essential elements: an
+understanding of the user’s needs, and an understanding of potential solutions.
+There are many different approaches to the study and design of user interfaces. This course
+attempts, so far as possible within 8 lectures, to discuss the important aspects of fields
+including: Interaction Design, User Experience Design (UX), Interactive Systems Design,
+Information Visualisation, Cognitive Ergonomics, Man-Machine Interface (MMI), User
+Interface Design (UI), Human Factors, Cognitive Task Design, Information Architecture
+(IA), Software Product Design, Usability Engineering, User-Centred Design (UCD) and
+Computer Supported Collaborative Work (CSCW).
+These investigations require a wide range of academic styles, extending across all the parts
+of the University. Lack of familiarity with other kinds of investigation and analysis can
+make it hard to absorb or collaborate with other perspectives. The advantages of different
+disciplines can range from those that are interpretive to those that are scientific (both are
+necessary), the first criticized as soft and the second as reductionist, and each relying on
+different kinds of knowledge, with suspicion of those seen as relativist at one extreme or
+positivist at the other. In professional work, the most important attributes for HCI experts
+are to be both creative and practical, placing design at the centre of the field.

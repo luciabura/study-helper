@@ -1,6 +1,6 @@
 A Study Helper based on Natural Language Processing 
 ===
-
+[![Build Status](https://travis-ci.org/luciabura/study-helper.svg?branch=master)](https://travis-ci.org/luciabura/study-helper)
 *This repository has been set up for a Part II Project.* 
 ## Description
 The aim of the project is to build an educational tool based on key–phrase extraction, summarization and question generation algorithms.

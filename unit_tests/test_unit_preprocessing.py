@@ -2,4 +2,4 @@
 Unit tests for the preprocessing step of the pipeline
 """
 
-import preprocessing.preprocessing as preprocessor
+import text_processing.preprocessing as preprocessor

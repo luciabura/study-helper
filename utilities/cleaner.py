@@ -1,8 +1,8 @@
 import codecs
-from utilities.utils import read_file
+from utilities.read_write import read_file
 from autocorrect import spell
 import glob, os
-import preprocessing.preprocessing as preprocessor
+import text_processing.preprocessing as preprocessor
 
 
 def clean_files(ref_name, text_words, ref_ngrams):
@@ -12,7 +12,7 @@ def clean_files(ref_name, text_words, ref_ngrams):
         OK = 1
         for word in ngram:
             if word not in text_words:
-                print word
+                print(word)
                 OK = 0
                 break
 
@@ -21,11 +21,11 @@ def clean_files(ref_name, text_words, ref_ngrams):
 
     for ngram in new_ngrams:
         keyword = ' '.join(ngram)
-        print>> file, keyword
+        print(keyword, file=file)
 
 
 def clean_hulth():
-    directory = raw_input('Directory path: ')
+    directory = input('Directory path: ')
     text_ending = '.abstr'
     key_ending = '.uncontr'
 
@@ -61,7 +61,7 @@ def clean_krapivin():
     #
     #     text = read_file(file)
     #     ref = read_file(ref_name)
-    FILE_PATH = raw_input('Enter the absolute path of '
+    FILE_PATH = input('Enter the absolute path of '
                           'the file you want to extract the keywords from: \n')
     FILE_TEXT = read_file(FILE_PATH)
     lines = FILE_TEXT.splitlines()
@@ -74,7 +74,7 @@ def clean_krapivin():
     text_words = [token.text for token in preprocessor.clean_and_tokenize(text)]
     text_words = correct_words(text_words)
     text = ' '.join(text_words)
-    print text
+    print(text)
     # print new_lines
 
 def correct_words(words):

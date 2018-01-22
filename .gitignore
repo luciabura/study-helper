@@ -1,0 +1,6 @@
+
+\.cache/v/cache/
+
+Study_Helper\.egg-info/
+
+*.pyc

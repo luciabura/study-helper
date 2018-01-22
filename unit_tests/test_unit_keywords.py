@@ -1,7 +1,7 @@
 from keyword_extraction import keywords
 from keyword_extraction import keywords_TR_lem
 
-from preprocessing.preprocessing import NLP
+from text_processing.preprocessing import NLP
 
 
 def test_build_lemmas():
@@ -16,8 +16,8 @@ def test_build_lemmas():
                     'magical': ['magical']}
 
     words_to_lemmas, lemmas_to_words = keywords.build_lemmas(words)
-    result_lemmas = lemmas_to_words.keys()
-    result_words = words_to_lemmas.keys()
+    result_lemmas = list(lemmas_to_words.keys())
+    result_words = list(words_to_lemmas.keys())
 
     assert sorted(result_lemmas) == sorted(expected_lemmas)
     assert sorted(result_words) == sorted(words)
@@ -27,7 +27,7 @@ def test_build_lemmas():
 
 
 def test_get_graph_tokens():
-    text = u'This is a test sentence.'
+    text = 'This is a test sentence.'
     # No graph words
     INCLUDE_POS_FILTER = []
     tokens = [token for token in NLP(text)]

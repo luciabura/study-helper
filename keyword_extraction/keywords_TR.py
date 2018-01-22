@@ -6,16 +6,18 @@ This is
 """
 
 import networkx as nx
+
 import operator
 
-import preprocessing.preprocessing as preprocess
-from utilities.utils import read_file
+import text_processing.preprocessing as preprocess
+from utilities.read_write import read_file
 
 WINDOW_SIZE = 2
 INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS']
 
+
 def get_keyword_combinations(original_sequence, scores):
-    keywords = scores.keys()
+    keywords = list(scores.keys())
     keyphrases = {}
     j = 0
     for i, _ in enumerate(original_sequence):
@@ -34,7 +36,7 @@ def get_keyword_combinations(original_sequence, scores):
                 else:
                     break
 
-            avg_score = avg_score / float(keyphrase_length)
+            # avg_score = avg_score / float(keyphrase_length)
             keyphrase = ' '.join(keyphrase_components)
             keyphrases[keyphrase] = avg_score
             j = i + len(keyphrase_components)
@@ -43,7 +45,7 @@ def get_keyword_combinations(original_sequence, scores):
 
 
 def sort_scores(scores):
-    sorted_scores = sorted(scores.items(), key=operator.itemgetter(1), reverse=True)
+    sorted_scores = sorted(list(scores.items()), key=operator.itemgetter(1), reverse=True)
 
     return sorted_scores
 
@@ -97,21 +99,31 @@ def get_keywords(text):
     graph_words = [token.text.lower() for token in graph_tokens]
 
     # Choose to display/return only a third in length
-    keyword_count = len(graph_words)/3
+    keyword_count = int(len(graph_words)/3)
 
     graph = build_graph(graph_words)
     add_graph_edges(graph, original_sequence)
+
+    # graph.remove_nodes_from(nx.isolates(graph))
+    #
+    # graph.graph['node']= {'shape': 'plaintext'}
+    # a = drawing.nx_agraph.to_agraph(graph)
+    # a.layout('dot')
+    # a.draw("graph_2.png")
+    # nx.draw_random(graph)
+    # plt.savefig("graph.png")
 
     pagerank_scores = nx.pagerank(graph, alpha=0.85, tol=0.0001)
 
     keyphrases = get_keyword_combinations(original_sequence, pagerank_scores)
     keyphrases = [keyphrase for keyphrase, _ in sort_scores(keyphrases)]
-    print len(graph_words)
+    print(len(graph_words))
+
     return keyphrases[0:keyword_count]
 
 
 if __name__ == '__main__':
-    FILE_PATH = raw_input('Enter the absolute path of '
+    FILE_PATH = input('Enter the absolute path of '
                           'the file you want to extract the keywords from: \n')
     FILE_TEXT = read_file(FILE_PATH)
-    print get_keywords(FILE_TEXT)
+    print(get_keywords(FILE_TEXT))

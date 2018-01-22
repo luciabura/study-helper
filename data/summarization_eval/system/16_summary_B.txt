@@ -1,0 +1,11 @@
+The player has a health meter, which is displayed on the game's heads-up display.
+The game is broken into levels, which are accessed from the cantina; each film is represented by six levels, representing key locations and scenes in that film.
+However, story mode restricts playable characters to those followed in the film scenes the levels are based on, while free play offers all those unlocked.
+The player can unlock the "Use Old Save" extra, which imports all unlocked characters from Lego Star Wars for use in free play; however, a Lego Star Wars saved game must be present on the same memory card that contains Lego Star Wars II's save data.
+The game generates names for the characters based on the pieces used (for example, a character made from pieces of Darth Vader and C-3PO might have the name "Darth-3PO"); alternately, the player may create a name.
+Character customization, an entirely new concept, was considered a significant improvement over the original game, and is one of three features highlighted on the game's final back cover.
+The game's North American release fell on September 12 for all platforms, coinciding with the release of the individual two-disc DVD releases of the films on which it was based.
+Several gameplay features—such as two-dimensional graphics, limited character selection, and coverage only of the film A New Hope—distinguish this version of the game from the versions for other platforms.
+A review by USA Today's Brett Molina claimed that "[t]he game's difficulty is balanced well enough so kids won't feel too frustrated while older gamers will still find a solid challenge" and gave the game an overall score of 8 out of 10.
+In contrast, the previously poorly received DS version was listed as one of the "tears" on IGN's September 2009 "Cheers & Tears" list of action games for the DS.
+It has been certified as part of the budget lines Platinum Hits for the Xbox 360, Greatest Hits for the PlayStation 2 (each represents a worldwide sales total of at least 400,000 on its respective platform), and Player's Choice for the GameCube (250,000).

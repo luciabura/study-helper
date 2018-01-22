@@ -1,79 +1,199 @@
 import networkx as nx
-import operator
+from spacy.lang.en.stop_words import STOP_WORDS
 
-import preprocessing.preprocessing as preprocess
-from utilities.utils import read_file
+import text_processing.preprocessing as preprocess
+from utilities import NLP
+from utilities.read_write import read_file
+
 # from utilities.words import get_cs_words
 
 WINDOW_SIZE = 2
-INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS']
-PUNCTUATION = ['.', '?', ',']
+INCLUDE_GRAPH_POS = ['NN', 'JJ', 'NNP', 'NNS', 'NNPS']
+
+
 # REFERENCE_WORDS = get_cs_words()
 
 
-def get_keyword_combinations(original_tokens, scores):
-    keywords = scores.keys()
-    keyphrases = {}
-    j = 0
-    for i, _ in enumerate(original_tokens):
-        if i < j:
-            continue
-        if original_tokens[i].lemma_.lower() in keywords:
-            keyphrase_components = []
-            keyphrase_length = 0
-            avg_score = 0
+class Keyword(object):
 
-            for token in original_tokens[i:i + 3]:
-                if token.text in PUNCTUATION:
-                    break
-
-                token_lemma = token.lemma_.lower()
-                token_text = token.text.lower()
-
-                if token_lemma in keywords and token_text not in keyphrase_components:
-                    keyphrase_components.append(token_text)
-                    avg_score += scores[token_lemma]
-                    keyphrase_length += 1
-                else:
-                    break
-
-            keyphrase = ' '.join(keyphrase_components)
-            keyphrases[keyphrase] = avg_score
-            j = i + len(keyphrase_components)
-
-    return keyphrases
+    def __init__(self, token, score, sentence):
+        self.token = token
+        self.text = self.token.lower_
+        self.score = score
+        self.sentence = sentence
+        self.doc = token.doc
 
 
-def sort_scores(scores):
-    sorted_scores = sorted(scores.items(), key=operator.itemgetter(1), reverse=True)
+class KeyPhrase(object):
 
-    return sorted_scores
+    def __init__(self, start_index, end_index, sentence, keywords):
+        self.span = sentence[start_index:end_index + 1]
+        self.text = self.span.string.strip().lower()
+        self.keywords = keywords
+        self.sentence = sentence
+        self.score = self.__calculate_score()
+
+    def __calculate_score(self):
+        score = 0
+        for key in self.keywords:
+            score += key.score
+        return score
+
+    def similarity(self, token):
+        return token.similarity(self.span)
 
 
-def add_graph_edges(graph, original_tokens):
+class KeywordProvider(object):
+
+    def __init__(self, doc, topic=None):
+        self.tokens = [token for token in doc]
+        self.sentences = [sent.as_doc() for sent in doc.sents]
+        self.doc = doc
+        self.keywords = []
+        self.key_phrases = []
+
+        self.topic = topic
+
+        self.__compute_keywords()
+
+    def __compute_keywords(self):
+        # Build the keyword graph
+        graph_tokens = get_graph_tokens(self.tokens, INCLUDE_GRAPH_POS)
+
+        graph_words = get_graph_words(graph_tokens)
+        graph = build_graph(graph_words)
+        keyword_graph = add_graph_edges(graph, self.tokens)
+
+        # Run pagerank
+        pagerank_scores = get_pagerank_scores(keyword_graph)
+
+        keywords_with_scores = get_keywords_with_scores(pagerank_scores, self.sentences)
+        self.keywords = sort_by_score(keywords_with_scores, descending=True)
+
+        key_phrases_with_scores = get_keyword_combinations(keywords_with_scores, self.sentences)
+        self.key_phrases = sort_by_score(key_phrases_with_scores, descending=True)
+
+    def show_keywords(self, keyword_count=None, trim=True):
+        if keyword_count is None:
+            keyword_count = int(len(self.key_phrases) / 3)
+
+        keyword_list = []
+        for keyword in self.keywords:
+            if keyword.text not in keyword_list:
+                keyword_list.append(keyword.text)
+
+        if trim:
+            return keyword_list[0:keyword_count]
+        else:
+            return keyword_list
+
+    def show_key_phrases(self, key_phrase_count=None, trim=True, filter_similar=True):
+        if key_phrase_count is None:
+            key_phrase_count = int(len(self.key_phrases) / 3)
+
+        key_phrase_list = []
+
+        if filter_similar:
+            _key_phrases = filter_similar_key_phrases(self.key_phrases)
+        else:
+            _key_phrases = self.key_phrases
+
+        for _key_phrase in _key_phrases:
+            if _key_phrase.text not in key_phrase_list:
+                key_phrase_list.append(_key_phrase.text)
+
+        if trim:
+            return key_phrase_list[0:key_phrase_count]
+        else:
+            return key_phrase_list
+
+
+def sort_by_score(unsorted, descending=False):
+    return sorted(unsorted, key=lambda el: el.score, reverse=descending)
+
+
+def get_keyword_combinations(keyword_list, sentences):
+    keyword_tokens = {}
+
+    for kw in keyword_list:
+        keyword_tokens[kw.token] = kw
+
+    key_phrases = []
+
+    for sentence in sentences:
+        j = 0
+        for i, token in enumerate(sentence):
+            if i < j:
+                continue
+            if token in keyword_tokens:
+                start_index = token.i
+                end_index = token.i
+                keyword_objects = [keyword_tokens[token]]
+
+                for tok in sentence[i:i + 4]:
+                    if tok.pos_ == 'PUNCT':
+                        if tok.tag_ == 'HYPH':
+                            end_index = tok.i + 1
+                            continue
+                        else:
+                            break
+
+                    if tok in keyword_tokens:
+                        end_index = tok.i
+                        keyword_objects.append(keyword_tokens[tok])
+                    else:
+                        break
+
+                key_phrase = KeyPhrase(start_index, end_index, sentence, keyword_objects)
+                key_phrases.append(key_phrase)
+
+                j = i + (end_index - start_index + 1)
+
+    return key_phrases
+
+
+def get_graph_words(tokens):
+    lemmas = [token.lemma_.lower() for token in tokens]
+    graph_words = list(set(lemmas))
+
+    return graph_words
+
+
+def add_graph_edges(graph, tokens):
     """
     Adds edge between all words in word sequence that are within WINDOW_SIZE
     of each other. I.e if within WINDOW_SIZE the two words co-occur
     """
-
     # Assume undirected graph for beginning
-    for i in range(0, len(original_tokens) - WINDOW_SIZE - 1):
+    for i in range(0, len(tokens) - WINDOW_SIZE - 1):
         for j in range(i + 1, i + WINDOW_SIZE + 1):
-            w1 = original_tokens[i].lemma_
-            w2 = original_tokens[j].lemma_
+            w1 = tokens[i].lemma_
+            w2 = tokens[j].lemma_
             if graph.has_node(w1) and graph.has_node(w2) and w1 != w2:
                 graph.add_edge(w1, w2, weight=1)
 
+    return graph
 
-def build_graph(chosen_words):
+
+def print_graph(graph):
+    # graph.remove_nodes_from(nx.isolates(graph))
+    graph.graph['node'] = {'shape': 'plaintext'}
+    a = nx.drawing.nx_agraph.to_agraph(graph)
+    a.layout('dot')
+    a.draw("graph_TR_LEM_2.png")
+
+
+def build_graph(graph_words):
     """
     Using a list of words that have been filtered to match the criteria,
     we initially build an undirected graph to run our algorithm on.
-    :param chosen_words:
+    :param graph_words:
     :return: Undirected graph, based on the networkx library implementation
     """
+
     graph = nx.Graph()
-    graph.add_nodes_from(chosen_words)
+
+    graph.add_nodes_from(graph_words)
 
     return graph
 
@@ -81,34 +201,117 @@ def build_graph(chosen_words):
 def get_graph_tokens(tokens, include_filter):
     graph_tokens = [token for token in tokens
                     if token.tag_ in include_filter
-                    and len(token.text) > 2]
+                    and token.text not in STOP_WORDS]
+
+    # print([(gt.tag_, gt.text) for gt in graph_tokens])
 
     return graph_tokens
 
 
-def get_keywords(text, keyword_count=10):
-    tokens = preprocess.clean_and_tokenize(text)
-    clean_tokens = preprocess.remove_stopwords(tokens)
-
-    graph_tokens = get_graph_tokens(clean_tokens, INCLUDE_GRAPH_POS)
-    keyword_count = len(graph_tokens)/3
-
-    lemmas = [token.lemma_.lower() for token in graph_tokens]
-    graph_words = list(set(lemmas))
-
-    graph = build_graph(graph_words)
-    add_graph_edges(graph, tokens)
-
+def get_pagerank_scores(graph):
     pagerank_scores = nx.pagerank(graph, alpha=0.85, tol=0.0001)
 
-    keyphrases = get_keyword_combinations(tokens, pagerank_scores)
+    return pagerank_scores
 
-    keyphrases = [keyphrase for keyphrase, _ in sort_scores(keyphrases)]
-    return keyphrases[0:keyword_count]
+
+def get_keywords_with_scores(pagerank_scores, sentences):
+    keywords_with_scores = []
+    for sentence in sentences:
+        for token in sentence:
+            if token.lemma_ in pagerank_scores.keys():
+                keyword_with_score = Keyword(token, score=pagerank_scores[token.lemma_], sentence=sentence)
+                keywords_with_scores.append(keyword_with_score)
+
+    keywords_with_scores.sort(key=lambda kw: kw.score, reverse=True)
+
+    return keywords_with_scores
+
+
+def filter_similar_key_phrases(sorted_keyphrases):
+    key_phrase_list = []
+    for kp in sorted_keyphrases:
+        seen = False
+        for existing_kp in key_phrase_list:
+            if set(kp.text.split()) < set(existing_kp.text.split()):
+                seen = True
+                break
+            elif set(existing_kp.text.split()) < set(kp.text.split()):
+                key_phrase_list.remove(existing_kp)
+                break
+            else:
+                # Checking for subsets of token lemmas
+                # -> eg: minimal generating sets, minimal set will not include 'minimat set' in final keyphrases
+
+                set_k_tokens = set([tok.lemma_ for tok in kp.span])
+                set_e_tokens = set([tok.lemma_ for tok in existing_kp.span])
+
+                if '-' in set_k_tokens and '-' in set_e_tokens \
+                        or '-' not in set_k_tokens and '-' not in set_e_tokens:
+                    if set_k_tokens <= set_e_tokens:
+                        seen = True
+                        break
+                    elif set_e_tokens <= set_k_tokens:
+                        key_phrase_list.remove(existing_kp)
+
+        if not seen:
+            key_phrase_list.append(kp)
+
+    return key_phrase_list
+
+
+class OriginalKeywordProvider(KeywordProvider):
+    def __init__(self, doc):
+        KeywordProvider.__init__(self, doc)
+
+    @staticmethod
+    def get_graph_words(tokens):
+        graph_words = list(set([token.lower_ for token in tokens]))
+
+        return graph_words
+
+    @staticmethod
+    def add_graph_edges(graph, tokens):
+        for i in range(0, len(tokens) - WINDOW_SIZE - 1):
+            for j in range(i + 1, i + WINDOW_SIZE + 1):
+                w1 = tokens[i].lower_
+                w2 = tokens[j].lower_
+                if graph.has_node(w1) and graph.has_node(w2) and w1 != w2:
+                    graph.add_edge(w1, w2, weight=1)
+
+        return graph
+
+    @staticmethod
+    def get_keywords_with_scores(pagerank_scores, sentences):
+        keywords_with_scores = []
+        for sentence in sentences:
+            for token in sentence:
+                if token.lower_ in pagerank_scores.keys():
+                    keyword_with_score = Keyword(token, score=pagerank_scores[token.lower_], sentence=sentence)
+                    keywords_with_scores.append(keyword_with_score)
+
+        keywords_with_scores.sort(key=lambda kw: kw.score, reverse=True)
+
+        return keywords_with_scores
 
 
 if __name__ == '__main__':
-    FILE_PATH = raw_input('Enter the absolute path of '
-                          'the file you want to extract the keywords from: \n')
+    FILE_PATH = input('Enter the absolute path of '
+                      'the file you want to extract the keywords from: \n')
     FILE_TEXT = read_file(FILE_PATH)
-    print get_keywords(FILE_TEXT)
+    document = preprocess.clean_and_tokenize(FILE_TEXT)
+    lemma_provider = KeywordProvider(document)
+    original_provider = OriginalKeywordProvider(document)
+
+    # print('\n Keyphrases:')
+    #
+    key_phrases = lemma_provider.show_key_phrases(trim=False, filter_similar=True)
+    print(key_phrases)
+    #
+    # key_phrases = original_provider.show_key_phrases(trim=False, filter_similar=False)
+    # print(key_phrases)
+
+    # topic = NLP("human-computer interaction")
+    #
+    # kps = lemma_provider.key_phrases
+    # for kp in kps:
+    #     print(kp.similarity(topic))

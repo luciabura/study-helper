@@ -1,0 +1,26 @@
+In Giants: Citizen Kabuto, players take on the roles of three humanoid races: gun-toting Meccaryns, magic-wielding Sea Reapers, and the gigantic Kabuto.
+The game's developers, Planet Moon Studios, created this design to encourage players to focus on the action and not to be burdened with micromanagement.
+Players have to gather little humanoids called Smarties to build bases, and produce weapons or spells.
+In contrast, players in control of Kabuto need not build a base; the gigantic creature gains strength and produces troops through hunting for food.
+Multiplayer mode allows a maximum of five Meccaryn, three Sea Reaper, and one Kabuto player(s) to play in each session.
+Besides the standard "destroy all enemy bases and units" missions, the multiplayer mode includes deathmatches and "Capture the Smartie (flag)"-type games.
+Planet Moon Studios tailored each single-player mission's terrain to the character played in it.
+Planet Moon intended for the player characters to provide a diverse gameplay experience, laying down requirements to make the characters distinct with unique advantages and disadvantages instead of cosmetic differences.
+Originally featuring each race in its own stand-alone story, the single-player mode was changed by Planet Moon to a single sequential story to make the creative process simpler.
+It starts players off as Baz, and they must complete a sequence of missions before they can proceed to the next sequence in the role of Delphi.
+On completion of Delphi's story, players take control of a Kabuto character.
+The ending of the Meccaryn's story sets the back story for the player to assume the role of the Sea Reaper princess, Delphi.
+After defeating Kabuto, Baz is shown in the final cut scene, flying off to Planet Majorca with Delphi, Borjoyzee, and his fellow Meccaryns.
+When five members of Shiny Entertainment's MDK development team broke off to set up Planet Moon Studios in 1997 with software engineer, Scott Guest, they decided to make their first project fun and original, a game with graphics and gameplay unseen at that time.
+Planet Moon designed the structure of the single-player mode to be a gradual learning process for the players; the game would introduce new command sets to the players as they progress, and encourage them to repeat using the new commands for that mission.
+Interplay Entertainment released the Windows version of the game on December 7, 2000.
+Planet Moon later created a special version of the game optimized for the GeForce 3 graphics card to display water reflections, soft edged shadows, and weather effects.
+Due to the limited capabilities of the PS2 as compared to the Windows platform and the addition of a save feature, the team focused on enhancing the action gameplay, streamlining the interfaces, and tweaking the Reaper ski races, level designs, and game balance.
+Near the release of the United States (US) Windows version of the game, Planet Moon failed to obtain a "Teen" rating from the ESRB despite changing the original red blood to green and covering Delphi's toplessness with a bikini top.
+Planet Moon Studios later released a patch that reverted the color of the blood to red, and computer gamers found they could restore Delphi's toplessness by deleting a file.
+Reviewers commented that the imaginative character designs and use of advanced graphics technology, such as hardware transform and lighting, and bump mapping, made the graphics of the game unrivaled in its time; ActionTrip was so impressed by the game's visuals that they thought their graphics card was supporting the complex hardware environmental bump mapping it was incapable of.
+In spite of the humor, many reviewers found themselves bored by the monotony and slow pace of certain segments, According to ActionTrip, Giants lacked a unique quality to capture attention, compared to its contemporaries such as American McGee's Alice, MechWarrior 4: Vengeance, and Sea Dogs.
+The frequent crashes of the retail Windows versions infuriated many reviewers; Game Revolution censured Interplay for focusing on censoring the game for marketing purposes instead of testing for and fixing the software bugs before release.
+Reviewers appreciated the PS2 version for including the asked-for save feature, but complained the ported game retained the AI and level design issues associated with the Windows version.
+The lack of replay value for the console version after completing the single player mode was a common complaint among the reviewers.
+In contrast, the Mac OS�X version sold out within months of its release, in spite of its smaller market base.
