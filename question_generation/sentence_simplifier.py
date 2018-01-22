@@ -5,21 +5,20 @@ from nltk.parse.stanford import StanfordParser
 from spacy import displacy
 from spacy.matcher import Matcher
 
-# from neuralcoref import Coref
 from neuralcoref import Coref
 from question_generation import *
 from text_processing.grammar import extract_noun_phrase, is_valid_sentence, find_parent_verb, \
     get_verb_correct_tense, remove_spans, get_subtree_span
 from utilities import NLP
 
-__location__ = os.path.realpath(
-    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+# __location__ = os.path.realpath(
+#     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
-parser_path = os.path.join(__location__, "stanford_parser/englishPCFG.ser.gz")
-jar_path = os.path.join(__location__, "stanford_parser/stanford-parser.jar")
-model_path = os.path.join(__location__, "stanford_parser/stanford-parser-models.jar")
+# parser_path = os.path.join(__location__, "stanford_parser/englishPCFG.ser.gz")
+# jar_path = os.path.join(__location__, "stanford_parser/stanford-parser.jar")
+# model_path = os.path.join(__location__, "stanford_parser/stanford-parser-models.jar")
 
-PARSER = StanfordParser(model_path=parser_path, path_to_jar=jar_path, path_to_models_jar=model_path)
+# PARSER = StanfordParser(model_path=parser_path, path_to_jar=jar_path, path_to_models_jar=model_path)
 
 REL_PRONS_REM = ['which', 'who']
 REL_PRON_ADD = ['where', 'when', 'what']

@@ -24,10 +24,12 @@ def nips_words():
 # CS_WORDS = preprocessor.word_tokenize(cs.read())
 # NIPS_WORDS = nips_words()
 
+
 def words_from_page(page):
     asc = to_ascii(page.content)
     words = preprocessor.nltk_word_tokenize(asc)
     return words
+
 
 def wiki_words(page, depth=1):
     wiki = []

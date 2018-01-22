@@ -1,11 +1,8 @@
-import spacy
 import sys
-import re
-from spacy import displacy
-from spacy.attrs import DEP, POS, TAG, ORTH
-from spacy.matcher import Matcher
 
-from question_generation.sentence_simplifier import PARSER
+import spacy
+from spacy.attrs import DEP
+from spacy.matcher import Matcher
 
 NLP = spacy.load('en_core_web_md')
 APPOS = Matcher(NLP.vocab)
@@ -33,10 +30,10 @@ def find_root(sentence):
             return tok
 
 
-def get_stanford_tree(sentence):
-    tagged_sentence = [(token.text, token.tag_) for token in sentence]
-    t = PARSER.tagged_parse(tagged_sentence)
-    return t
+# def get_stanford_tree(sentence):
+#     tagged_sentence = [(token.text, token.tag_) for token in sentence]
+#     t = PARSER.tagged_parse(tagged_sentence)
+#     return t
 
 
 def print_noun_chunks(sentence):

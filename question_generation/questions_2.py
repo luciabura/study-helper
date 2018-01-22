@@ -1,6 +1,6 @@
+import math
 from collections import OrderedDict
 
-import math
 from spacy.matcher import Matcher
 from spacy.tokens import Token
 
@@ -8,11 +8,10 @@ import question_generation.sentence_simplifier as simplifier
 from keyword_extraction.keywords_filtered import get_keywords_with_scores
 from question_generation import *
 from summarization.sentence_provider import SentenceProvider
-from summarization.summary import get_sentences_with_keywords_and_scores, get_top_sentences
+from summarization.summary import get_sentences_with_keywords_and_scores
 from text_processing import preprocessing as preprocess
 from text_processing.grammar import has_pronouns, extract_noun_phrase, get_verb_phrase, is_past_tense, is_3rd_person, \
     is_valid_subject, show_dependencies, is_vowel
-from text_processing.preprocessing import clean_and_format, sentence_tokenize
 from utilities import NLP
 from utilities.read_write import read_file
 

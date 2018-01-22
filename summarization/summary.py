@@ -11,14 +11,17 @@ import math
 from collections import OrderedDict
 
 import networkx as nx
-import os
 
 import text_processing.preprocessing as preprocess
 from keyword_extraction.keywords_filtered import get_keywords_with_scores
-from utilities.read_write import read_file, print_to_file, print_summary_to_file
+from utilities.read_write import read_file, print_summary_to_file
 
 IDENTIFIER = '_A'
 WINDOW_SIZE = 2
+
+
+def get_top_sentences(sentences):
+    pass
 
 
 def get_sentences_with_keywords_and_scores(sentences, keywords_with_scores):
@@ -135,5 +138,5 @@ if __name__ == '__main__':
                       'the file you want to summarize: \n')
     OUTPUT_DIR = input('Directory to put summary in: \n')
     FILE_TEXT = read_file(FILE_PATH)
-    # print(get_summary(FILE_TEXT))
-    print_summary_to_file(get_summary, FILE_PATH, OUTPUT_DIR, IDENTIFIER)
+    print(get_summary(FILE_TEXT))
+    # print_summary_to_file(get_summary, FILE_PATH, OUTPUT_DIR, IDENTIFIER)
