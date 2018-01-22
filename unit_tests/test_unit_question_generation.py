@@ -40,8 +40,8 @@ def test_prepare_question_verb(sentence, verb_indexes, expected_verb_X, expected
 def test_get_correct_verb_helper(verb, expected_verb_with_helper, expected_verb_no_helper):
     verb_original = NLP(verb)[0]
 
-    verb_with_helper = get_verb_form(verb_original, needs_helper=True)
-    verb_no_helper = get_verb_form(verb_original, needs_helper=False)
+    verb_with_helper = get_verb_form(verb_original, includes_subject=True)
+    verb_no_helper = get_verb_form(verb_original, includes_subject=False)
 
     assert verb_with_helper == expected_verb_with_helper
     assert verb_no_helper == expected_verb_no_helper
@@ -50,8 +50,8 @@ def test_get_correct_verb_helper(verb, expected_verb_with_helper, expected_verb_
 def test_get_correct_verb_helper_none():
     verb_original = None
 
-    verb_with_helper = get_verb_form(verb_original, needs_helper=True)
-    verb_no_helper = get_verb_form(verb_original, needs_helper=False)
+    verb_with_helper = get_verb_form(verb_original, includes_subject=True)
+    verb_no_helper = get_verb_form(verb_original, includes_subject=False)
 
     assert verb_with_helper is None
     assert verb_no_helper is None
