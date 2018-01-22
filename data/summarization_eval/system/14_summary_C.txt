@@ -1,0 +1,41 @@
+In 1838 Matthias Schleiden proposed that the nucleus plays a role in generating cells, thus he introduced the name "Cytoblast" (cell builder). 
+Franz Meyen was a strong opponent of this view having already described cells multiplying by division and believing that many cells would have no nuclei. 
+The idea that cells can be generated de novo, by the "cytoblast" or otherwise, contradicted work by Robert Remak (1852) and Rudolf Virchow (1855) who decisively propagated the new paradigm that cells are generated solely by cells ("Omnis cellula e cellula"). 
+In mammalian cells, the average diameter of the nucleus is approximately 6 micrometers (μm), which occupies about 10% of the total cell volume. 
+Both structures serve to mediate binding to nuclear transport proteins. 
+Steroid hormones such as cortisol and aldosterone, as well as other small lipid-soluble molecules involved in intercellular signaling can diffuse through the cell membrane and into the cytoplasm, where they bind nuclear receptor proteins that are trafficked into the nucleus. 
+In animal cells, two networks of intermediate filaments provide the nucleus with mechanical support: the nuclear lamina forms an organized meshwork on the internal face of the envelope, while less organized support is provided on the cytosolic face of the envelope. 
+The cell nucleus contains the majority of the cell's genetic material, in the form of multiple linear DNA molecules organized into structures called chromosomes. 
+During most of the cell cycle these are organized in a DNA-protein complex known as chromatin, and during cell division the chromatin can be seen to form the well defined chromosomes familiar from a karyotype. 
+First documented in HeLa cells, where there are generally 10–30 per nucleus, paraspeckles are now known to also exist in all human primary cells, transformed cell lines and tissue sections. 
+During telophase, when the two daughter nuclei are formed, there is no RNA Pol II transcription so the protein components instead form a perinucleolar cap. 
+Because of a cell's changing requirements, the composition and location of these bodies changes according to mRNA transcription and regulation via phosphorylation of specific proteins. 
+The main function of the cell nucleus is to control gene expression and mediate the replication of DNA during the cell cycle. 
+At high concentrations of fructose-6-phosphate, a molecule made later from glucose-6-phosphate, a regulator protein removes hexokinase to the nucleus, where it forms a transcriptional repressor complex with nuclear proteins to reduce the expression of genes involved in glycolysis. 
+In order to control which genes are being transcribed, the cell separates some transcription factor proteins responsible for regulating gene expression from physical access to the DNA until they are activated by other signaling pathways. 
+For example in the case of NF-κB-controlled genes, which are involved in most inflammatory responses, transcription is induced in response to a signal pathway such as that initiated by the signaling molecule TNF-α, binds to a cell membrane receptor, resulting in the recruitment of signalling proteins, and eventually activating the transcription factor NF-κB. 
+A nuclear localisation signal on the NF-κB protein allows it to be transported through the nuclear pore and into the nucleus, where it stimulates the transcription of the target genes. 
+In the case of genes encoding proteins, that RNA produced from this process is messenger RNA (mRNA), which then needs to be translated by ribosomes to form a protein. 
+These proteins include helicases that unwind the double-stranded DNA molecule to facilitate access to it, RNA polymerases that synthesize the growing RNA molecule, topoisomerases that change the amount of supercoiling in DNA, helping it wind and unwind, as well as a large variety of transcription factors that regulate expression. 
+They must undergo post-transcriptional modification in the nucleus before being exported to the cytoplasm; mRNA that appears in the nucleus without these modifications is degraded rather than used for protein translation. 
+RNA splicing, carried out by a complex called the spliceosome, is the process by which introns, or regions of DNA that do not code for protein, are removed from the pre-mRNA and the remaining exons connected to re-form a single continuous molecule. 
+Although small molecules can enter the nucleus without regulation, macromolecules such as RNA and proteins require association karyopherins called importins to enter the nucleus and exportins to exit. 
+"Cargo" proteins that must be translocated from the cytoplasm to the nucleus contain short amino acid sequences known as nuclear localization signals which are bound by importins, while those transported from the nucleus to the cytoplasm carry nuclear export signals bound by exportins. 
+This quality-control mechanism is important due to the these molecules' central role in protein translation; mis-expression of a protein due to incomplete excision of exons or mis-incorporation of amino acids could have negative consequences for the cell; thus incompletely modified RNA that reaches the cytoplasm is degraded rather than used in translation. 
+During its lifetime a nucleus may be broken down, either in the process of cell division or as a consequence of apoptosis, a regulated form of cell death. 
+During the cell cycle the cell divides to form two cells. 
+Towards the end of the cell cycle, the nuclear membrane is reformed, and around the same time, the nuclear lamina are reassembled by dephosphorylating the lamins. 
+Apoptosis is a controlled process in which the cell's structural components are destroyed, resulting in death of the cell. 
+Cells that express mutant caspase-resistant lamins are deficient in nuclear changes related to apoptosis, suggesting that lamins play a role in initiating the events that lead to apoptotic degradation of the nucleus. 
+DNA viruses, such as herpesvirus replicate and assemble in the cell nucleus, and exit by budding through the inner nuclear membrane. 
+Although most cells have a single nucleus, some eukaryotic cell types have no nucleus, and others have many nuclei. 
+This can be a normal process, as in the maturation of mammalian red blood cells, or a result of faulty cell division. 
+Anucleated cells contain no nucleus and are therefore incapable of dividing to produce daughter cells. 
+The best-known anucleated cell is the mammalian red blood cell, or erythrocyte, which also lacks other organelles such as mitochondria and serves primarily as a transport vessel to ferry oxygen from the lungs to the body's tissues. 
+Anucleated cells can also arise from flawed cell division in which one daughter lacks a nucleus and the other has two nuclei. 
+Polynucleated cells contain multiple nuclei. 
+In humans, skeletal muscle cells, called myocytes, become polynucleated during development; the resulting arrangement of nuclei near the periphery of the cells allows maximal intracellular space for myofibrils. 
+Multinucleated cells can also be abnormal in humans; for example, cells arising from the fusion of monocytes and macrophages, known as giant multinucleated cells, sometimes accompany inflammation and are also implicated in tumor formation. 
+Observations that myxobacteria are motile, can form multicellular complexes, and possess kinases and G proteins similar to eukarya, support a bacterial origin for the eukaryotic cell. 
+A similar proposal states that a eukaryote-like cell, the chronocyte, evolved first and phagocytosed archaea and bacteria to generate the nucleus and the eukaryotic cell. 
+This model, termed the exomembrane hypothesis, suggests that the nucleus instead originated from a single ancestral cell that evolved a second exterior cell membrane; the interior membrane enclosing the original cell then became the nuclear membrane and evolved increasingly elaborate pore structures for passage of internally synthesized cellular components such as ribosomal subunits.

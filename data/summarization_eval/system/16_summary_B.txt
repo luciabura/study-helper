@@ -1,24 +1,11 @@
-Lego Star Wars II's gameplay is from a third person perspective, and takes place in a 3D game world that contains objects, environments and characters designed to resemble Lego pieces.
-Its gameplay a combination of the action adventure, platform, and sometimes puzzle genres shares elements with that of Lego Star Wars The Video Game.
-During game play, players can collect Lego studs small, disk shaped objects that serve as the game's currency.
-At the counter, the player may use their Lego studs to purchase characters, vehicles, gameplay hints and extras, or activate cheat codes.
-During levels, the player defeats enemies, builds objects out of Lego bricks and drives vehicles, Certain levels are played entirely while piloting vehicles, including a TIE fighter, a Snowspeeder, and the Millennium Falcon.
+The player has a health meter, which is displayed on the game's heads-up display.
+The game is broken into levels, which are accessed from the cantina; each film is represented by six levels, representing key locations and scenes in that film.
 However, story mode restricts playable characters to those followed in the film scenes the levels are based on, while free play offers all those unlocked.
-Each level also contains ten hidden minikits, that is, ten pieces of a Star Wars vehicle.
-As each vehicle is completed all ten minikits collected , it becomes available for play in a bonus level.
-Over 50 characters from the films are playable over the course of the game, including Luke Skywalker, Princess Leia, Han Solo, Chewbacca, Lando Calrissian, R2 D2, C 3PO, Darth Vader, an Ewok, and Boba Fett.
-The player can unlock the Use Old Save extra, which imports all unlocked characters from Lego Star Wars for use in free play; however, a Lego Star Wars saved game must be present on the same memory card that contains Lego Star Wars II's save data.
-Lego Star Wars II was created by the Cheshire, England, game developer Traveller's Tales.
-Lego Star Wars II was created for Microsoft Windows, Mac OS X, Xbox, GameCube, PlayStation 2, Game Boy Advance GBA , Nintendo DS, PlayStation Portable PSP , and Xbox 360.
-These vehicle levels were explored more thoroughly in Lego Star Wars II than in its predecessor.
-Because the original Lego Star Wars had been well received commercially and critically, selling 3.3 million copies by March 2006 and winning several awards, its sequel was highly anticipated by both fans of the original game and video game publications such as IGN and GameSpot.
-In Europe, Lego Star Wars II was released on September 11, 2006 for PC, Xbox, GameCube, GBA, DS, and Xbox 360; on September 15 for PlayStation 2; and on November 10 for PSP.
-Several gameplay features such as two dimensional graphics, limited character selection, and coverage only of the film A New Hope distinguish this version of the game from the versions for other platforms.
-The Complete Saga incorporated improvements from the sequel into the original game, and expanded the Mos Eisley Cantina to allow access to both games' levels.
-Upon release, Lego Star Wars II was generally well received by critics, who praised its portrayal of the films' characters and events.
-In reviews of the Xbox 360 version, Official Xbox Magazine praised the game's off kilter humor , and Electronic Gaming Monthly stated that y ou have to give credit to the brilliant blockhead who forced this awesome yet fundamentally bizarro idea on LucasArts.
-Shepperd praised the level design of Lego Star Wars II, and called its predecessor's environments sterile .
-Lego Star Wars II won and was nominated for numerous awards, and ranked on several video game lists.
-The PlayStation 2, GameCube, Xbox 360, and Xbox versions were the third, fifth, eighth, and ninth best selling games of September 2006, respectively.
-The GameCube, Xbox, and PlayStation 2 versions were the third, eighth, and ninth best selling games of 2006, respectively.
-Character customization a new feature in Lego Star Wars II reappeared in subsequent Lego video games such as Lego Batman The Videogame.
+The player can unlock the "Use Old Save" extra, which imports all unlocked characters from Lego Star Wars for use in free play; however, a Lego Star Wars saved game must be present on the same memory card that contains Lego Star Wars II's save data.
+The game generates names for the characters based on the pieces used (for example, a character made from pieces of Darth Vader and C-3PO might have the name "Darth-3PO"); alternately, the player may create a name.
+Character customization, an entirely new concept, was considered a significant improvement over the original game, and is one of three features highlighted on the game's final back cover.
+The game's North American release fell on September 12 for all platforms, coinciding with the release of the individual two-disc DVD releases of the films on which it was based.
+Several gameplay features—such as two-dimensional graphics, limited character selection, and coverage only of the film A New Hope—distinguish this version of the game from the versions for other platforms.
+A review by USA Today's Brett Molina claimed that "[t]he game's difficulty is balanced well enough so kids won't feel too frustrated while older gamers will still find a solid challenge" and gave the game an overall score of 8 out of 10.
+In contrast, the previously poorly received DS version was listed as one of the "tears" on IGN's September 2009 "Cheers & Tears" list of action games for the DS.
+It has been certified as part of the budget lines Platinum Hits for the Xbox 360, Greatest Hits for the PlayStation 2 (each represents a worldwide sales total of at least 400,000 on its respective platform), and Player's Choice for the GameCube (250,000).

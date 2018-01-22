@@ -1,0 +1,26 @@
+In Giants: Citizen Kabuto, players take on the roles of three humanoid races: gun-toting Meccaryns, magic-wielding Sea Reapers, and the gigantic Kabuto. 
+The game's developers, Planet Moon Studios, created this design to encourage players to focus on the action and not to be burdened with micromanagement. 
+The objectives are usually the elimination of enemies or a certain structure, but several of them test the player's eye–hand coordination or require the player to rescue and protect certain units. 
+Due to the lack of a game server browser, players connect through online services MPlayer or GameSpy Arcade for the Windows version, and GameRanger for the Mac OS�X version. 
+Besides the standard "destroy all enemy bases and units" missions, the multiplayer mode includes deathmatches and "Capture the Smartie (flag)"-type games. 
+On completion of Delphi's story, players take control of a Kabuto character. 
+The player wanders around the islands as the Delphi-Kabuto character, searching for prey to increase her size. 
+When five members of Shiny Entertainment's MDK development team broke off to set up Planet Moon Studios in 1997 with software engineer, Scott Guest, they decided to make their first project fun and original, a game with graphics and gameplay unseen at that time. 
+Planet Moon designed the structure of the single-player mode to be a gradual learning process for the players; the game would introduce new command sets to the players as they progress, and encourage them to repeat using the new commands for that mission. 
+Interplay Entertainment released the Windows version of the game on December 7, 2000. 
+Planet Moon later created a special version of the game optimized for the GeForce 3 graphics card to display water reflections, soft edged shadows, and weather effects. 
+The Omni Group was responsible for the porting of the game; they rewrote the game's software to take advantage of the symmetric multi-processing capability of Mac OS�X. 
+Due to the limited capabilities of the PS2 as compared to the Windows platform and the addition of a save feature, the team focused on enhancing the action gameplay, streamlining the interfaces, and tweaking the Reaper ski races, level designs, and game balance. 
+Near the release of the United States (US) Windows version of the game, Planet Moon failed to obtain a "Teen" rating from the ESRB despite changing the original red blood to green and covering Delphi's toplessness with a bikini top. 
+Composers Mark Snow (noted for his The X-Files musical scores), Mark Morgan, and Jeremy Soule (both known for the music of several video games) were involved in the music for Giants. 
+Closing credits of the game listed only Morgan and Soule, and Soule compiled their works onto the original soundtrack of the game. 
+Game Revolution and GameSpot found the simplified real-time strategy task of resource gathering in Giants more interesting than tedious, and Troy Dunniway, Microsoft's Head of Game Design in 2002, commented that the real-time strategy elements enhanced the game's shooter aspect rather than making it a hybrid of two genres. 
+The Entertainment Depot, however, found the base building in several missions tedious; they said the player had to rebuild the base several times due to being forced to leave the base defenseless, which allowed the enemy destroy the structures. 
+Reviewers commented that the imaginative character designs and use of advanced graphics technology, such as hardware transform and lighting, and bump mapping, made the graphics of the game unrivaled in its time; ActionTrip was so impressed by the game's visuals that they thought their graphics card was supporting the complex hardware environmental bump mapping it was incapable of. 
+FiringSquad claimed the humor kept them plowing through the game regardless of the issues they encountered, and were disappointed when the game steadily lost this approach in the later stages. 
+The frequent crashes of the retail Windows versions infuriated many reviewers; Game Revolution censured Interplay for focusing on censoring the game for marketing purposes instead of testing for and fixing the software bugs before release. 
+Several reviewers could not connect to multiplayer games due to failed connections or bugs. 
+GamesFirst lamented the lack of dedicated low ping servers, and several reviewers declared that the computer versions of the game was flawed for not implementing an in-game save feature. 
+Reviewers appreciated the PS2 version for including the asked-for save feature, but complained the ported game retained the AI and level design issues associated with the Windows version. 
+In 2009, Andrew Groen of GameZone ran a retrospective on Giants and suggested that the game's mix of humor and action inspired later games such as Ratchet & Clank and Jak and Daxter. 
+He further commented that games of 2004–09 were influenced by Giants in one way or another.
