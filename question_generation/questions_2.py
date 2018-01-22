@@ -7,7 +7,7 @@ from spacy.tokens import Token
 import question_generation.sentence_simplifier as simplifier
 from keyword_extraction.keywords_filtered import get_keywords_with_scores
 from question_generation import *
-from summarization.sentence_provider import SentenceProvider
+from summarization.sentence_provider import SentenceProvider, Sentence
 from summarization.summary import get_sentences_with_keywords_and_scores
 from text_processing import preprocessing as preprocess
 from text_processing.grammar import has_pronouns, extract_noun_phrase, get_verb_phrase, is_past_tense, is_3rd_person, \
@@ -28,6 +28,7 @@ MATCHER = Matcher(NLP.vocab)
 class Question:
     def __init__(self, question, sentence, answer):
         self.content = question
+        # Assumes we get a sentence object of the form described by Sentence in sentence_provider
         self.sentence = sentence
         self.answer = answer
 
@@ -631,37 +632,30 @@ def generate_q():
     # text = NLP(u"The general took his soldiers to the hiding place.")
     text = NLP(u"Apple’s first logo, designed by Jobs and Wayne, depicts Sir Isaac Newton sitting under an apple tree.")
 
-    all_questions = []
-
-    matches = MATCHER(text)
-    for ent_id, start, end in matches:
-        match = Match(ent_id, start, end, text)
-        pattern_name = NLP.vocab.strings[ent_id]
-        # print(pattern_name)
-        questions = handle_match(pattern_name)(match)
-        if questions:
-            all_questions.extend(questions)
-
-    for question in all_questions:
-        print(question)
+    setence_object_mock = Sentence(text, 1)
+    generate_questions_trial(trial_sentence=setence_object_mock)
 
 
-def generate_questions_trial():
-    text = read_file(input('Filepath: '))
-    document = preprocess.clean_and_tokenize(text)
+def generate_questions_trial(trial_sentence=None):
 
-    sentence_provider = SentenceProvider(document)
+    if trial_sentence:
+        top_sentences = [trial_sentence]
+    else:
+        text = read_file(input('Filepath: '))
+        document = preprocess.clean_and_tokenize(text)
 
-    top_sentences = sentence_provider.get_top_sentences(trim=False)
+        sentence_provider = SentenceProvider(document)
 
-    for sent in top_sentences:
-        print(sent.as_doc)
+        top_sentences = sentence_provider.get_top_sentences(trim=False)
 
-    trial_sents = [top_sentences[0]]
-    # text = clean_and_format(text)
-    # coreferences, resolved = get_coreferences(text)
+        for sent in top_sentences:
+            print(sent.as_doc)
 
-    # text_as_doc = preprocess.clean_and_tokenize(text)
+        trial_sents = [top_sentences[0]]
+        # text = clean_and_format(text)
+        # coreferences, resolved = get_coreferences(text)
+
+        # text_as_doc = preprocess.clean_and_tokenize(text)
 
     initialize_question_patterns()
     all_questions = set([])
