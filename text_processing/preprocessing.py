@@ -10,6 +10,15 @@ LEMMATIZER = WordNetLemmatizer()
 STOP_WORDS = set(stopwords.words('english'))
 
 
+def spacy_word_tokenize(text):
+    doc = clean_and_tokenize(text)
+    words = []
+    for token in doc:
+        words.append(token.text)
+
+    return words
+
+
 def clean_and_tokenize(text):
     """
     :param text: Original unprocessed text (as read directly from file)
@@ -61,7 +70,7 @@ def nltk_sentence_tokenize(text):
 def sentence_tokenize(text):
     text = clean_and_format(text)
     doc = NLP(text)
-    sentences = [sent for sent in doc.sents]
+    sentences = [sent.as_doc() for sent in doc.sents]
     return sentences
 
 
