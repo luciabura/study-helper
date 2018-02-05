@@ -58,7 +58,8 @@ class SentenceProvider(object):
         self.keyword_provider = KeywordProvider(doc, topic)
         self.keywords = self.keyword_provider.keywords
         self.sentences = self.keyword_provider.sentences
-        self.top_sentences = []
+
+        self.sentence_objects = []
 
         self.topic = topic
 
@@ -76,7 +77,7 @@ class SentenceProvider(object):
 
         self.calculate_final_scores(sentences_dict)
 
-        self.top_sentences = self.sort_by_score(list(sentences_dict.values()), descending=True)
+        self.sentence_objects = self.sort_by_score(list(sentences_dict.values()), descending=True)
 
     def get_top_sentences(self, sentence_count=None, trim=True):
         if sentence_count is None:
@@ -86,9 +87,9 @@ class SentenceProvider(object):
             print('Please provide more text for an accurate summary.')
 
         if trim:
-            return self.top_sentences[0:sentence_count]
+            return self.sentence_objects[0:sentence_count]
         else:
-            return self.top_sentences
+            return self.sentence_objects
 
         return sentences
 
