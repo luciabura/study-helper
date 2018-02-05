@@ -6,6 +6,7 @@ from spacy.tokens import Token
 
 import question_generation.sentence_simplifier as simplifier
 from keyword_extraction.keywords_filtered import get_keywords_with_scores
+from neuralcoref import Coref
 from question_generation import *
 from summarization.sentence_provider import SentenceProvider, Sentence
 from summarization.summary import get_sentences_with_keywords_and_scores
@@ -631,6 +632,11 @@ def generate_q():
     text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
     # text = NLP(u"The general took his soldiers to the hiding place.")
     text = NLP(u"Apple’s first logo, designed by Jobs and Wayne, depicts Sir Isaac Newton sitting under an apple tree.")
+    # text = NLP(u"An Apple fell on Newton's head.")
+    # text = NLP(u"Mario Kart is the most annoying game to be played.")
+    # text = NLP(u"Software that is usable for its purpose is sometimes described by programmers as “intuitive” (easy to learn, easy to remember, easy to apply to new problems) or “powerful” (efficient, effective)")
+    # text = NLP(u"This course attempts, so far as possible within 8 lectures, to discuss the important aspects of fields including: Interaction Design, User Experience Design (UX), Interactive Systems Design, Information Visualisation, Cognitive Ergonomics, Man-Machine Interface (MMI), User Interface Design (UI), Human Factors, Cognitive Task Design, Information Architecture (IA), Software Product Design, Usability Engineering, User-Centred Design (UCD) and Computer Supported Collaborative Work (CSCW).")
+    # text = NLP(u"This course attempts, so far as possible within 8 lectures, to discuss the important aspects of fields including: Interaction Design, User Experience Design (UX), Interactive Systems Design.")
 
     setence_object_mock = Sentence(text, 1)
     generate_questions_trial(trial_sentence=setence_object_mock)
@@ -640,11 +646,17 @@ def generate_questions_trial(trial_sentence=None):
 
     if trial_sentence:
         top_sentences = [trial_sentence]
+
     else:
         text = read_file(input('Filepath: '))
         document = preprocess.clean_and_tokenize(text)
 
         sentence_provider = SentenceProvider(document)
+
+        resolved_text = resolve_coreferences(document.text)
+        resolved_sentences = [s for s in preprocess.sentence_tokenize(resolved_text[0])]
+
+        replace_coreferences(resolved_sentences, sentence_provider.sentence_objects)
 
         top_sentences = sentence_provider.get_top_sentences(trim=False)
 
@@ -663,8 +675,14 @@ def generate_questions_trial(trial_sentence=None):
 
     for sentence in top_sentences:
         simplified_sentences = simplifier.simplify_sentence(sentence.text)
+
+        print("\nOriginal sentence:\n")
+        print(sentence.text)
+
+        print("\nSimplified sentences:\n")
+
         for s in simplified_sentences:
-            # print(s)
+            print(s)
             matches = MATCHER(s)
             for ent_id, start, end in matches:
                 match = Match(ent_id, start, end, s)
@@ -681,12 +699,12 @@ def generate_questions_trial(trial_sentence=None):
                             q_object = Question(question, sentence, answer)
                             all_questions.add(q_object)
 
-    print("\n Questions: \n")
+    print("\nQuestions: \n")
 
     sorted_questions = sort_by_score(all_questions, descending=True)
 
     for question in sorted_questions:
-        print(question.content, question.answer)
+        print("Q: {}\n".format(question.content))
 
 
 # Switch statement, sort of
@@ -706,6 +724,24 @@ def handle_match(pattern_name):
 
 def sort_by_score(unsorted, descending=False):
     return sorted(unsorted, key=lambda el: el.score, reverse=descending)
+
+
+def resolve_coreferences(text):
+    coref = Coref(nlp=NLP)
+
+    coref.one_shot_coref(utterances=text)
+
+    resolved_utterance_text = coref.get_resolved_utterances()
+
+    print(resolved_utterance_text)
+
+    return resolved_utterance_text
+
+
+def replace_coreferences(resolved_sentences, original_sentence_objects):
+    for (i, sentence) in enumerate(resolved_sentences):
+        if sentence.text != original_sentence_objects[i].text:
+            original_sentence_objects[i].text = sentence.text
 
 
 if __name__ == '__main__':
