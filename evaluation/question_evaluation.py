@@ -8,29 +8,39 @@ Measures:
 3*) relevance to topic if topic exists
 """
 
+import math
 
-from sklearn.decomposition import LatentDirichletAllocation
-from text_processing.preprocessing import spacy_word_tokenize
-from utilities.read_write import read_file
+import spacy
+
+
+def spacy_perplexity(text, model):
+    doc = model(text)
+    log_sum = 0
+    for token in doc:
+        log_sum -= token.prob
+
+    if len(doc) > 0:
+        log_sum /= len(doc)
+
+    perplexity = math.pow(2, log_sum)
+    return perplexity
+
+
 if __name__ == '__main__':
     text = "What is the colour of his hair?"
     text2 = "What are John doing?"
     text3 = "What is John doing?"
-    lda = LatentDirichletAllocation()
-    t_tokens = spacy_word_tokenize(text)
+    text4 = "Why is John going to the supermarket?"
+    text5 = "Where give Mark to Ana?"
 
-    corpus_filepath = input("Corpus filepath:")
-    corpus_text = read_file(corpus_filepath)
-    tokens = spacy_word_tokenize(corpus_text)
+    NLP = spacy.load('en_core_web_lg')
 
-    lda.fit(tokens)
-    p_s = lda.perplexity(t_tokens)
-    # p_s2 = LatentDirichletAllocation.perplexity(text2)
-    # p_s3 = LatentDirichletAllocation.perplexity(text3)
-    """Our perplexity for the second question should be higher"""
-    print(p_s)
-    # print(p_s2)
-    # print(p_s3)
+    print(spacy_perplexity(text, NLP))
+    print(spacy_perplexity(text2, NLP))
+    print(spacy_perplexity(text3, NLP))
+    print(spacy_perplexity(text4, NLP))
+    print(spacy_perplexity(text5, NLP))
+
 
 def similarity_overlap_score(q1, q2):
     """Takes two questions as text"""
