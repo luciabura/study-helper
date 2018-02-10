@@ -16,6 +16,8 @@ from text_processing.grammar import has_pronouns, extract_noun_phrase, get_verb_
 from utilities import NLP
 from utilities.read_write import read_file
 
+from evaluation.question_evaluation import spacy_perplexity
+
 WHO_ENTS = ['PERSON', 'NORP']
 WHEN_ENTS = ['DATE']
 WHERE_ENTS = ['LOCATION', 'FACILITY', 'ORG', 'LOC', 'GPE']
@@ -704,7 +706,8 @@ def generate_questions_trial(trial_sentence=None):
     sorted_questions = sort_by_score(all_questions, descending=True)
 
     for question in sorted_questions:
-        print("Q: {}\n".format(question.content))
+        perplexity = spacy_perplexity(question.content)
+        print("Q: {}\nPerplexity: {}\n".format(question.content, perplexity))
 
 
 # Switch statement, sort of
@@ -749,6 +752,6 @@ if __name__ == '__main__':
     # doc = NLP(u'Computer Science is the study of both practical and theoretical approaches to computers. A computer scientist specializes in the theory of computation.')
     # sentences = list(doc.sents)
     # show_dependencies(sentences[1].as_doc(), port=5001)
-    generate_q()
+    # generate_q()
     # trial_sentences()
-    # generate_questions_trial()
+    generate_questions_trial()
