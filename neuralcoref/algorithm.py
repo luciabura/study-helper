@@ -83,7 +83,7 @@ class Coref:
         
         model_path = os.path.join(PACKAGE_DIRECTORY, "weights/conll/" if conll is not None else "weights/")
         embed_model_path = os.path.join(PACKAGE_DIRECTORY, "weights/")
-        print("loading model from", model_path)
+        # print("loading model from", model_path)
         self.data = Data(nlp, model_path=embed_model_path, conll=conll, use_no_coref_list=use_no_coref_list, consider_speakers=conll)
         self.coref_model = Model(model_path)
 
