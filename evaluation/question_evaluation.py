@@ -12,8 +12,10 @@ import math
 
 import spacy
 
+NLP = spacy.load('en_core_web_lg')
 
-def spacy_perplexity(text, model):
+
+def spacy_perplexity(text, model=NLP):
     doc = model(text)
     log_sum = 0
     for token in doc:
@@ -26,14 +28,19 @@ def spacy_perplexity(text, model):
     return perplexity
 
 
+def test_spacy_perplexity():
+    bad_grammar = "What are John doing?"
+    good_grammar = "What is John doing?"
+
+    assert spacy_perplexity(bad_grammar, NLP) > spacy_perplexity(good_grammar, NLP)
+
+
 if __name__ == '__main__':
     text = "What is the colour of his hair?"
     text2 = "What are John doing?"
     text3 = "What is John doing?"
     text4 = "Why is John going to the supermarket?"
     text5 = "Where give Mark to Ana?"
-
-    NLP = spacy.load('en_core_web_lg')
 
     print(spacy_perplexity(text, NLP))
     print(spacy_perplexity(text2, NLP))
