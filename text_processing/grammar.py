@@ -11,7 +11,7 @@ def has_pronouns(span):
     return False
 
 
-def extract_noun_phrase(token, sentence, exclude_span=None, include_span=None, discard_commas=False):
+def extract_noun_phrase(token, sentence, exclude_span=None, include_span=None, discard_punct=None):
     start_index = INFINITY
     end_index = -1
 
@@ -22,13 +22,8 @@ def extract_noun_phrase(token, sentence, exclude_span=None, include_span=None, d
             continue
         if include_span and child not in include_span:
             continue
-        elif discard_commas and child.tag_ == ',':
+        elif discard_punct and child.text in discard_punct:
             continue
-        # if child.dep_.endswith("mod") \
-        #         or child.dep_ == "compound" \
-        #         or child == token \
-        #         or child.dep_ == "poss" \
-        #         or child.dep_ == "case":
 
         if start_index > child.i:
             start_index = child.i
