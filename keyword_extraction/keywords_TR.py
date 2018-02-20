@@ -97,6 +97,7 @@ def get_keywords(text):
 
     graph_tokens = get_graph_tokens(tokens)
     graph_words = [token.text.lower() for token in graph_tokens]
+    # print(sorted(list(set(graph_words))))
 
     # Choose to display/return only a third in length
     keyword_count = int(len(graph_words)/3)
@@ -117,7 +118,7 @@ def get_keywords(text):
 
     keyphrases = get_keyword_combinations(original_sequence, pagerank_scores)
     keyphrases = [keyphrase for keyphrase, _ in sort_scores(keyphrases)]
-    print(len(graph_words))
+    # print(len(graph_words))
 
     return keyphrases[0:keyword_count]
 
