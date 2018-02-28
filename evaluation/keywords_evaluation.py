@@ -49,6 +49,8 @@ def keyphrase_f1(keys, ref_keys, alpha=0.5):
 
 
 def keyphrase_precision(keys, ref_keys):
+    if keys is None or ref_keys is None:
+        return None
     score = 0
     for key in keys:
         if key in ref_keys:
@@ -68,6 +70,8 @@ def keyphrase_precision(keys, ref_keys):
 
 
 def keyphrase_recall(keys, ref_keys):
+    if keys is None or ref_keys is None:
+        return None
     score = 0
     for ref_key in ref_keys:
         if ref_key in keys:
@@ -175,52 +179,50 @@ def aggregate_results():
         established_keyphrases = gensim_keywords(file_text).split('\n')
 
         k_TR_lem = list(set(' '.join(keyphrases_TR_lem).split()))
-        (f1, p, r) = keyword_score(k_TR_lem, ref_keywords)
+        (f1, p, r) = keyword_score(keyphrases_TR_lem, ref_ngrams)
         av_lem_w_f1 += f1
         av_lem_w_p += p
         av_lem_w_r += r
 
-        (f1, p, r) = keyphrase_score(keyphrases_TR_lem, ref_ngrams)
-        av_lem_kp_f1 += f1
-        av_lem_kp_p += p
-        av_lem_kp_r += r
+        # (f1, p, r) = keyphrase_score(keyphrases_TR_lem, ref_ngrams)
+        # av_lem_kp_f1 += f1
+        # av_lem_kp_p += p
+        # av_lem_kp_r += r
 
         k_TR = list(set(' '.join(keyphrases_TR).split()))
-        (f1, p, r) = keyword_score(k_TR, ref_keywords)
+        (f1, p, r) = keyword_score(keyphrases_TR, ref_ngrams)
         av_w_f1 += f1
         av_w_p += p
         av_w_r += r
 
-        (f1, p, r) = keyphrase_score(k_TR, ref_ngrams)
-        av_kp_f1 += f1
-        av_kp_p += p
-        av_kp_r += r
+        # (f1, p, r) = keyphrase_score(keyphrases_TR, ref_ngrams)
+        # av_kp_f1 += f1
+        # av_kp_p += p
+        # av_kp_r += r
 
         k_TR_filt = list(set(' '.join(keyphrases_filtered).split()))
-        (f1, p, r) = keyword_score(k_TR_filt, ref_keywords)
+        (f1, p, r) = keyword_score(keyphrases_filtered, ref_ngrams)
         av_filt_w_f1 += f1
         av_filt_w_p += p
         av_filt_w_r += r
 
-        (f1, p, r) = keyphrase_score(k_TR_filt, ref_ngrams)
-        av_filt_kp_f1 += f1
-        av_filt_kp_p += p
-        av_filt_kp_r += r
+        # (f1, p, r) = keyphrase_score(keyphrases_filtered, ref_ngrams)
+        # av_filt_kp_f1 += f1
+        # av_filt_kp_p += p
+        # av_filt_kp_r += r
 
         k_established = list(set((' '.join(established_keyphrases)).split()))
-        (f1, p, r) = keyword_score(k_established, ref_keywords)
+        (f1, p, r) = keyword_score(established_keyphrases, ref_ngrams)
         av_est_w_f1 += f1
         av_est_w_p += p
         av_est_w_r += r
 
-        (f1, p, r) = keyphrase_score(k_established, ref_ngrams)
-        av_est_kp_f1 += f1
-        av_est_kp_p += p
-        av_est_kp_r += r
+        # (f1, p, r) = keyphrase_score(established_keyphrases, ref_ngrams)
+        # av_est_kp_f1 += f1
+        # av_est_kp_p += p
+        # av_est_kp_r += r
 
         n = n+1
-        
-        break
 
     av_est_w_f1 *= 100 / n
     av_est_kp_f1 *= 100 / n
@@ -258,29 +260,29 @@ def aggregate_results():
     av_filt_w_r *= 100 / n
     av_filt_kp_r *= 100 / n
 
-    res_kp = "F1 lemmas:{} , Precision lemmas:{}, Recall lemmas:{} \n \
-    F1 w/o lemmas:{} , Precision w/o lemmas:{}, Recall w/o lemmas:{} \n \
-    F1 filtered:{} , Precision filtered:{}, Recall filtered:{} \n \
-    F1 established:{} , Precision established:{}, Recall established:{} \n".\
-        format(av_lem_kp_f1, av_lem_kp_p, av_lem_kp_r,
-               av_kp_f1, av_kp_p, av_kp_r,
-               av_filt_kp_f1, av_filt_kp_p, av_filt_kp_r,
-               av_est_kp_f1,av_est_kp_p, av_est_kp_r)
+    # res_kp = "F1 lemmas:{} , Precision lemmas:{}, Recall lemmas:{} \n\
+    # F1 w/o lemmas:{} , Precision w/o lemmas:{}, Recall w/o lemmas:{} \n\
+    # F1 filtered:{} , Precision filtered:{}, Recall filtered:{} \n\
+    # F1 established:{} , Precision established:{}, Recall established:{}\n".\
+    #     format(av_lem_kp_f1, av_lem_kp_p, av_lem_kp_r,
+    #            av_kp_f1, av_kp_p, av_kp_r,
+    #            av_filt_kp_f1, av_filt_kp_p, av_filt_kp_r,
+    #            av_est_kp_f1,av_est_kp_p, av_est_kp_r)
 
-    res_w = "F1 lemmas:{} , Precision lemmas:{}, Recall lemmas:{} \n \
-    F1 w/o lemmas:{} , Precision w/o lemmas:{}, Recall w/o lemmas:{} \n \
-    F1 filtered:{} , Precision filtered:{}, Recall filtered:{} \n \
-    F1 established:{} , Precision established:{}, Recall established:{} \n". \
+    res_w = "F1 lemmas:{} , Precision lemmas:{}, Recall lemmas:{}\n\
+    F1 w/o lemmas:{} , Precision w/o lemmas:{}, Recall w/o lemmas:{}\n\
+    F1 filtered:{} , Precision filtered:{}, Recall filtered:{}\n\
+    F1 established:{} , Precision established:{}, Recall established:{}\n". \
         format(av_lem_w_f1, av_lem_w_p, av_lem_w_r,
                av_w_f1, av_w_p, av_w_r,
                av_filt_w_f1, av_filt_w_p, av_filt_w_r,
                av_est_w_f1, av_est_w_p, av_est_w_r)
 
-    output_path_w = os.path.join(KEYWORD_DIR, "av_res_w_2.txt")
-    output_path_kp = os.path.join(KEYWORD_DIR, "av_res_kp_2.txt")
+    output_path_w = os.path.join(KEYWORD_DIR, "av_res_classic.txt")
+    # output_path_kp = os.path.join(KEYWORD_DIR, "av_res_kp_2.txt")
 
     print_to_file(res_w, output_path_w)
-    print_to_file(res_kp, output_path_kp)
+    # print_to_file(res_kp, output_path_kp)
 
 
 if __name__ == '__main__':

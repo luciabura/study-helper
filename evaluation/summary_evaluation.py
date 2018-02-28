@@ -31,16 +31,37 @@ def make_summaries(summarizer, identifier):
 
 def evaluate_summaries(summarizer_identifier):
     os.chdir(SUMM_SYSTEM)
+    n = 0
+    av_r1 = av_r2 = av_rl = av_rbe = av_b = 0
     for file in glob.glob("*summary" + summarizer_identifier + ".txt"):
+        n = n + 1
         summary_input_path = os.path.join(SUMM_SYSTEM, file)
         reference_input_path = os.path.join(SUMM_GOLD, file.replace(summarizer_identifier, ''))
 
         system_summary = read_file(summary_input_path)
         reference_summary = read_file(reference_input_path)
 
-        result = get_evaluation_scores(system_summary, reference_summary)
-        output_path = os.path.join(SUMM_SCORES, file.replace('summary', '_scores'))
-        print_to_file(result, output_path)
+        # result = get_evaluation_scores(system_summary, reference_summary)
+        r1, r2, rl, rbe, b = get_evaluation_scores(system_summary, reference_summary)
+        av_r1 += r1
+        av_r2 += r2
+        av_rl += rl
+        av_rbe += rbe
+        av_b += b
+
+        # output_path = os.path.join(SUMM_SCORES, file.replace('summary', '_scores'))
+        # print_to_file(result, output_path)
+
+    av_r1 /= n
+    av_r2 /= n
+    av_rl /= n
+    av_rbe /= n
+    av_b /= n
+
+    result = ("ROUGE-1: {}, ROUGE-2: {}, ROUGE-L: {}, ROUGE-BE: {}, BLEU: {}".format(
+                     av_r1, av_r2, av_rl, av_rbe, av_b).replace(", ", "\n"))
+    output_path = os.path.join(SUMM_SCORES, "evaluation_summary.txt")
+    print_to_file(result, output_path)
 
 
 def prepare_for_eval(summary):
@@ -70,10 +91,12 @@ def get_evaluation_scores(summary, reference):
     bleu = BLEU.bleu(summary=summary,
                      references=reference)
 
-    result = ("ROUGE-1: {}, ROUGE-2: {}, ROUGE-L: {}, ROUGE-BE: {}, BLEU: {}".format(
-                rouge_1, rouge_2, rouge_l, rouge_be, bleu).replace(", ", "\n"))
+    # result = ("ROUGE-1: {}, ROUGE-2: {}, ROUGE-L: {}, ROUGE-BE: {}, BLEU: {}".format(
+    #             rouge_1, rouge_2, rouge_l, rouge_be, bleu).replace(", ", "\n"))
 
-    return result
+    # return result
+
+    return rouge_1, rouge_2, rouge_l, rouge_be, bleu
 
 
 def evaluate_summary_manual():
@@ -119,7 +142,7 @@ if __name__ == '__main__':
     # make_summaries(summarizer=gensim_sum.get_summary, identifier='_A')
     # make_summaries(summarizer=summary.get_summary, identifier='_B')
     # make_summaries(summarizer=sentence_provider.get_summary, identifier='_C')
-    # evaluate_summaries(summarizer_identifier='_A')
+    evaluate_summaries(summarizer_identifier='_A')
     # evaluate_summaries(summarizer_identifier='_B')
     # evaluate_summaries(summarizer_identifier='_C')
-    evaluate_summary_manual()
+    # evaluate_summary_manual()
