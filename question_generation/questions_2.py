@@ -16,8 +16,6 @@ from text_processing.grammar import has_pronouns, extract_noun_phrase, get_verb_
 from utilities import NLP
 from utilities.read_write import read_file
 
-from evaluation.question_evaluation import spacy_perplexity
-
 WHO_ENTS = ['PERSON', 'NORP']
 WHEN_ENTS = ['DATE']
 WHERE_ENTS = ['LOCATION', 'FACILITY', 'ORG', 'LOC', 'GPE']
@@ -41,7 +39,7 @@ class Question:
 
     def __compute_score(self):
         score = self.sentence.score
-        text_answer = self.answer.string.lower()
+        text_answer = [tok.lower for tok in self.answer]
 
         for kp in self.sentence.key_phrases:
             if kp.text in text_answer:
@@ -55,8 +53,11 @@ class Question:
 
 def initialize_question_patterns():
     # This will match wrongly on is created, was made etc
-    attribute_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'attr'}]
-    attribute_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'attr'}]
+    attribute_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'attr'}]
+    acomp_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'acomp'}]
+    # attribute_1 = [{DEP: 'nsubj'}]
+    attribute_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'attr'}]
+    acomp_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'acomp'}]
 
     direct_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'}]
     direct_object_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'}]
@@ -81,6 +82,8 @@ def initialize_question_patterns():
 
     MATCHER.add("ATTR", None, attribute_1)
     MATCHER.add("ATTR", None, attribute_2)
+    MATCHER.add("ATTR", None, acomp_1)
+    MATCHER.add("ATTR", None, acomp_2)
     MATCHER.add("DOBJ", None, direct_object_1)
     MATCHER.add("DOBJ", None, direct_object_2)
     MATCHER.add("POBJ", None, prep_object_1)
@@ -530,6 +533,8 @@ def trial_sentences():
 
     text = NLP(u"Mark's fingerprints were found after the investigation.")
     text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
+    text = NLP(u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
+    text = NLP(u'This text is one of the most famous ones in history.')
 
     show_dependencies(text, port=5000)
     # for nc in text.noun_chunks:
@@ -633,24 +638,29 @@ def generate_q():
     # text = NLP(u'The handle should be attached before the mantle.')
     text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
     # text = NLP(u"The general took his soldiers to the hiding place.")
-    text = NLP(u"Apple’s first logo, designed by Jobs and Wayne, depicts Sir Isaac Newton sitting under an apple tree.")
+    # text = NLP(u"Apple’s first logo, designed by Jobs and Wayne, depicts Sir Isaac Newton sitting under an apple tree.")
+    text = NLP(u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
+    text = NLP(u"The game was played on February 7, 2016, at Levi's Stadium in the San Francisco Bay Area at Santa Clara, California.")
     # text = NLP(u"An Apple fell on Newton's head.")
     # text = NLP(u"Mario Kart is the most annoying game to be played.")
     # text = NLP(u"Software that is usable for its purpose is sometimes described by programmers as “intuitive” (easy to learn, easy to remember, easy to apply to new problems) or “powerful” (efficient, effective)")
     # text = NLP(u"This course attempts, so far as possible within 8 lectures, to discuss the important aspects of fields including: Interaction Design, User Experience Design (UX), Interactive Systems Design, Information Visualisation, Cognitive Ergonomics, Man-Machine Interface (MMI), User Interface Design (UI), Human Factors, Cognitive Task Design, Information Architecture (IA), Software Product Design, Usability Engineering, User-Centred Design (UCD) and Computer Supported Collaborative Work (CSCW).")
     # text = NLP(u"This course attempts, so far as possible within 8 lectures, to discuss the important aspects of fields including: Interaction Design, User Experience Design (UX), Interactive Systems Design.")
 
+
     setence_object_mock = Sentence(text, 1)
     generate_questions_trial(trial_sentence=setence_object_mock)
 
 
-def generate_questions_trial(trial_sentence=None):
+def generate_questions_trial(trial_sentence=None, text=None):
 
     if trial_sentence:
         top_sentences = [trial_sentence]
 
     else:
-        text = read_file(input('Filepath: '))
+        if text is None:
+            text = read_file(input('Filepath: '))
+
         document = preprocess.clean_and_tokenize(text)
 
         sentence_provider = SentenceProvider(document)
@@ -678,14 +688,16 @@ def generate_questions_trial(trial_sentence=None):
     for sentence in top_sentences:
         simplified_sentences = simplifier.simplify_sentence(sentence.text)
 
-        print("\nOriginal sentence:\n")
-        print(sentence.text)
+        # print("\nOriginal sentence:\n")
+        # print(sentence.text)
 
-        print("\nSimplified sentences:\n")
+        # print("\nSimplified sentences:\n")
 
         for s in simplified_sentences:
-            print(s)
+            # print(s)
+
             matches = MATCHER(s)
+
             for ent_id, start, end in matches:
                 match = Match(ent_id, start, end, s)
                 pattern_name = NLP.vocab.strings[ent_id]
@@ -701,13 +713,16 @@ def generate_questions_trial(trial_sentence=None):
                             q_object = Question(question, sentence, answer)
                             all_questions.add(q_object)
 
-    print("\nQuestions: \n")
+    # print("\nQuestions: \n")
 
     sorted_questions = sort_by_score(all_questions, descending=True)
 
-    for question in sorted_questions:
-        perplexity = spacy_perplexity(question.content)
-        print("Q: {}\nPerplexity: {}\n".format(question.content, perplexity))
+    # for question in sorted_questions:
+    #     # perplexity = spacy_perplexity(question.content)
+    #     # print("Q: {}\nPerplexity: {}\n".format(question.content, perplexity))
+    #     print("Q: {}".format(question.content))
+
+    return sorted_questions
 
 
 # Switch statement, sort of
@@ -736,7 +751,7 @@ def resolve_coreferences(text):
 
     resolved_utterance_text = coref.get_resolved_utterances()
 
-    print(resolved_utterance_text)
+    # print(resolved_utterance_text)
 
     return resolved_utterance_text
 
@@ -752,6 +767,6 @@ if __name__ == '__main__':
     # doc = NLP(u'Computer Science is the study of both practical and theoretical approaches to computers. A computer scientist specializes in the theory of computation.')
     # sentences = list(doc.sents)
     # show_dependencies(sentences[1].as_doc(), port=5001)
-    # generate_q()
+    generate_q()
     # trial_sentences()
-    generate_questions_trial()
+    # generate_questions_trial()
