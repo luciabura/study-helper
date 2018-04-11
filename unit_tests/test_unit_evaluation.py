@@ -1,5 +1,6 @@
 import sys
 from evaluation.keywords_evaluation import keyword_score, keyphrase_score
+from evaluation.summary_evaluation import get_evaluation_scores
 
 EPSILON = sys.float_info.epsilon
 
@@ -61,3 +62,13 @@ def test_keyphrase_score_big_reference_keyphrase():
     assert abs(prec - expected_prec) < EPSILON
     assert abs(rec - expected_rec) < EPSILON
     assert abs(f_mes - expected_f1) < EPSILON
+
+
+def test_summary_reference_score():
+    summary = "It was a lovely day."
+    reference = "It was a lovely day"
+
+    r1, r2, rl, rbe, bl_1 = get_evaluation_scores(summary=summary, reference=reference)
+
+
+    assert r1 == 1 and r2 == 1 and rl == 1 and rbe == 1
