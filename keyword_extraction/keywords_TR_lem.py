@@ -28,6 +28,7 @@ class KeyPhrase(object):
 
     def __init__(self, start_index, end_index, sentence, keywords):
         self.span = sentence[start_index:end_index + 1]
+        self.length = len(self.span)
         self.text = self.span.string.strip().lower()
         self.keywords = keywords
         self.sentence = sentence
@@ -271,6 +272,7 @@ def filter_similar_key_phrases(sorted_keyphrases):
                 set_k_tokens = set([tok.lemma_ for tok in kp.span])
                 set_e_tokens = set([tok.lemma_ for tok in existing_kp.span])
 
+                # exclude words separated by hyphens 
                 if '-' in set_k_tokens and '-' in set_e_tokens \
                         or '-' not in set_k_tokens and '-' not in set_e_tokens:
                     if set_k_tokens <= set_e_tokens:
@@ -324,10 +326,10 @@ if __name__ == '__main__':
     FILE_PATH = input('Enter the absolute path of '
                       'the file you want to extract the keywords from: \n')
     FILE_TEXT = read_file(FILE_PATH)
-    document = preprocess.clean_and_tokenize(FILE_TEXT)
+    document = preprocess.clean_to_doc(FILE_TEXT)
     lemma_provider = KeywordProvider(document)
 
-    science = preprocess.clean_and_tokenize("systems")
+    science = preprocess.clean_to_doc("systems")
     lemma_provider_topic = KeywordProvider(document, science)
 
     print("\nWithout topic")

@@ -10,7 +10,7 @@ from keyword_extraction.keywords_TR import get_keywords as get_graph_keywords_2
 from keyword_extraction.keywords_TR_lem import KeywordProvider
 from keyword_extraction.keywords_filtered import get_keywords as get_graph_keywords_4
 from text_processing import preprocessing
-from text_processing.preprocessing import clean_and_tokenize
+from text_processing.preprocessing import clean_to_doc
 from utilities.read_write import read_file, print_to_file
 
 KEYWORD_DIR = os.path.join(DATA_DIR, 'keywords_eval')
@@ -116,7 +116,7 @@ def keyphrase_score(extracted_keyphrases, reference_keyphrases):
 
 
 def get_reference_keywords(reference_text):
-    text_tokens = clean_and_tokenize(reference_text)
+    text_tokens = clean_to_doc(reference_text)
     reference_keywords = [token.text for token in text_tokens]
 
     return reference_keywords
@@ -163,7 +163,7 @@ def aggregate_results():
         file_text = read_file(input_path)
         reference_text = read_file(reference_path)
 
-        document = preprocessing.clean_and_tokenize(file_text)
+        document = preprocessing.clean_to_doc(file_text)
         keyword_provider = KeywordProvider(document)
 
         ref_keywords = get_reference_keywords(reference_text)
