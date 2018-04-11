@@ -1,3 +1,5 @@
+import math
+
 import text_processing.preprocessing as preprocess
 from keyword_extraction.keywords import get_keywords
 from utilities.read_write import read_file
@@ -8,20 +10,24 @@ def get_summary(text, sentence_count=None):
     sentences = preprocess.nltk_sentence_tokenize(text)
 
     if sentence_count is None:
-        sentence_count = len(sentences)/3
+        sentence_count = math.ceil(len(sentences)/5)
 
     canditate_sentences = get_sentences_with_keywords(keywords, sentences)
     sorted_canditate_sentences = sort_sentences(canditate_sentences)
 
-    summary = [sentence for sentence in list(canditate_sentences.keys()) if
+    summary = [sentence for sentence in sentences if
                sentence in sorted_canditate_sentences[0:sentence_count]]
 
-    return summary
+    summary_text = '\n'.join(summary)
+
+    return summary_text
 
 
 def sort_sentences(sentences_set):
     sorted_sentences = [sentence for sentence in
-                        sorted(sentences_set, key=lambda k: len(sentences_set[k]), reverse=True)]
+                        sorted(sentences_set,
+                               key=lambda k: sentences_set[k],
+                               reverse=True)]
     return sorted_sentences
 
 
@@ -33,9 +39,11 @@ def get_sentences_with_keywords(keywords, sentences):
         for word in sentence_words:
             if word in keywords:
                 if sentence in sentences_with_keywords:
-                    sentences_with_keywords[sentence].append(word)
+                    sentences_with_keywords[sentence] += 1
                 else:
-                    sentences_with_keywords[sentence] = [word]
+                    sentences_with_keywords[sentence] = 1
+                sentences_with_keywords[sentence] = sentences_with_keywords[sentence] * 1.0 \
+                                                    / math.log(len(sentence_words), 2)
 
     return sentences_with_keywords
 
