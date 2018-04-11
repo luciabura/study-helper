@@ -1,0 +1,493 @@
+Chapter 1
+Overview
+From the book Networks, Crowds, and Markets: Reasoning about a Highly Connected World.
+By David Easley and Jon Kleinberg. Cambridge University Press, 2010.
+Complete preprint on-line at http://www.cs.cornell.edu/home/kleinber/networks-book/
+Over the past decade there has been a growing public fascination with the complex
+“connectedness” of modern society. At the heart of this fascination is the idea of a network
+— a pattern of interconnections among a set of things — and one finds networks appearing
+in discussion and commentary on an enormous range of topics. The diversity of contexts in
+which networks are invoked is in fact so vast that it’s worth deferring precise definitions for
+a moment while we first recount a few of the more salient examples.
+To begin with, the social networks we inhabit — the collections of social ties among friends
+— have grown steadily in complexity over the course of human history, due to technological
+advances facilitating distant travel, global communication, and digital interaction. The past
+half-century has seen these social networks depart even more radically from their geographic
+underpinnings, an effect that has weakened the traditionally local nature of such structures
+but enriched them in other dimensions.
+The information we consume has a similarly networked structure: these structures too
+have grown in complexity, as a landscape with a few purveyors of high-quality information
+(publishers, news organizations, the academy) has become crowded with an array of
+information sources of wildly varying perspectives, reliabilities, and motivating intentions.
+Understanding any one piece of information in this environment depends on understanding
+the way it is endorsed by and refers to other pieces of information within a large network of
+links.
+Our technological and economic systems have also become dependent on networks of
+enormous complexity. This has made their behavior increasingly difficult to reason about,
+and increasingly risky to tinker with. It has made them susceptible to disruptions that
+spread through the underlying network structures, sometimes turning localized breakdowns
+into cascading failures or financial crises.
+Draft version: June 10, 2010
+
+Figure 1.1: The social network of friendships within a 34-person karate club [421].
+The imagery of networks has made its way into many other lines of discussion as well:
+Global manufacturing operations now have networks of suppliers, Web sites have networks
+of users, and media companies have networks of advertisers. In such formulations, the
+emphasis is often less on the structure of the network itself than on its complexity as a large,
+diffuse population that reacts in unexpected ways to the actions of central authorities. The
+terminology of international conflict has come to reflect this as well: for example, the picture
+of two opposing, state-supported armies gradually morphs, in U.S. Presidential speeches, into
+images of a nation facing “a broad and adaptive terrorist network” [296], or “at war against
+a far-reaching network of violence and hatred” [328].
+1.1 Aspects of Networks
+How should we think about networks, at a more precise level, so as to bring all these issues
+together? In the most basic sense, a network is any collection of objects in which some pairs
+of these objects are connected by links. This definition is very flexible: depending on the
+setting, many different forms of relationships or connections can be used to define links.
+Because of this flexibility, it is easy to find networks in many domains, including the ones
+we’ve just been discussing. As a first example of what a network looks like, Figure 1.1 depicts
+the social network among 34 people in a university karate club studied by the anthropologist
+Wayne Zachary in the 1970s. The people are represented by small circles, with lines joining
+the pairs of people who are friends outside the context of the club. This is the typical way
+in which networks will be drawn, with lines joining the pairs of objects that are connected
+Figure 1.2: Social networks based on communication and interaction can also be
+constructed from the traces left by on-line data. In this case, the pattern of email
+communication among 436 employees of Hewlett Packard Research Lab is superimposed
+on the official organizational hierarchy [6]. (Image from http://wwwpersonal.umich.edu/
+ladamic/img/hplabsemailhierarchy.jpg)
+by links.
+Later in this chapter we’ll discuss some of the things one can learn from a network such as
+the one in Figure 1.1, as well as from larger examples such as the ones shown in Figures 1.2–
+1.4. These larger examples depict, respectively, e-mail exchanges among employees of a
+company; loans among financial institutions; and links among blogs on the Web. In each
+case, links indicate the pairs who are connected (specifically, people connected by e-mail
+exchange, financial institutions by a borrower-lender relationship, and blogs through a link
+on the Web from one to the other).
+Simply from their visual appearance, we can already see some of the complexity that network
+structures contain. It is generally difficult to summarize the whole network succinctly;
+there are parts that are more or less densely interconnected, sometimes with central “cores”
+containing most of the links, and sometimes with natural splits into multiple tightly-linked
+regions. Participants in the network can be more central or more peripheral; they can straddle
+the boundaries of different tightly-linked regions or sit squarely in the middle of one.
+Developing a language for talking about the typical structural features of networks will be
+an important first step in understanding them.
+Figure 1.3: The network of loans among financial institutions can be used to analyze the roles that different
+participants play in the financial system, and how the interactions among these roles affect the health of
+individual participants and the system as a whole The network here is annotated in a way that reveals its
+dense core, according to a scheme we will encounter in Chapter 13. (Image from Bech and Atalay [50].)
+Behavior and Dynamics. But the structure of the network is only a starting point.
+When people talk about the “connectedness” of a complex system, in general they are really
+talking about two related issues. One is connectedness at the level of structure — who is
+linked to whom — and the other is connectedness at the level of behavior — the fact that
+each individual’s actions have implicit consequences for the outcomes of everyone in the
+system.
+This means that in addition to a language for discussing the structure of networks, we
+also need a framework for reasoning about behavior and interaction in network contexts.
+And just as the underlying structure of a network can be complex, so too can the coupled
+behavior of its inhabitants. If individuals have strong incentives to achieve good outcomes,
+Figure 1.4: The links among Web pages can reveal densely-knit communities and prominent
+sites. In this case, the network structure of political blogs prior to the 2004 U.S. Presidential
+election reveals two natural and well-separated clusters [5]. (Image from http://wwwpersonal.umich.edu/
+ladamic/img/politicalblogs.jpg)
+then not only will they appreciate that their outcomes depend on how others behave, but they
+will take this into account in planning their own actions. As a result, models of networked
+behavior must take strategic behavior and strategic reasoning into account.
+A fundamental point here is that in a network setting, you should evaluate your actions
+not in isolation, but with the expectation that the world will react to what you do. This
+means that cause-effect relationships can become quite subtle. Changes in a product, a Web
+site, or a government program can seem like good ideas when evaluated on the assumption
+that everything else will remain static, but in reality such changes can easily create incentives
+that shift behavior across the network in ways that were initially unintended.
+Moreover, such effects are at work whether we are able to see the network or not. When
+a large group of people is tightly interconnected, they will often respond in complex ways
+that are only apparent at the population level, even though these effects may come from
+implicit networks that we do not directly observe. Consider, for example, the way in which
+new products, Web sites, or celebrities rise to prominence — as illustrated, for example, by
+Figures 1.5 and 1.6, which show the growth in popularity of the social media sites YouTube
+Figure 1.5: The rapidly growing popularity of YouTube is characteristic of the way in which
+new products, technologies, or innovations rise to prominence, through feedback effects in
+the behavior of many individuals across a population. The plot depicts the number of
+Google queries for YouTube over time. The image comes from the site Google Trends
+(http://www.google.com/trends?q=youtube); by design, the units on the y-axis are suppressed
+in the output from this site.
+and Flickr over the past several years. What we see in these figures is a growing awareness
+and adoption of a new innovation that is visible in aggregate, across a whole population.
+What are the underlying mechanisms that lead to such success? Standard refrains are
+often invoked in these situations: the rich get richer; winners take all; small advantages are
+magnified to a critical mass; new ideas get attention that becomes “viral.” But the rich don’t
+always get richer and small advantages don’t always lead to success. Some social networking
+sites flourish, like Facebook, while others, like SixDegrees.com, vanish. To understand how
+these processes work, and how they are realized through the interconnected actions of many
+people, we need to study the dynamics of aggregate behavior.
+A Confluence of Ideas. Understanding highly connected systems, then, requires a set
+of ideas for reasoning about network structure, strategic behavior, and the feedback effects
+they produce across large populations. These are ideas that have traditionally been dispersed
+across many different disciplines. However, in parallel with the increasing public
+interest in networks, there has been a coming-together of scientific fields around the topic of
+network research. Each of these fields brings important ideas to the discussion, and a full
+understanding seems to require a synthesis of perspectives from all of them.
+One of our central goals in this book is to help bring about such a synthesis, combining
+approaches that have traditionally been pursued separately. From computer science, applied
+mathematics, and operations research we draw on a language for talking about the
+complexity of network structure, information, and systems with interacting agents. From
+Figure 1.6: This companion to Figure 1.5 shows the rise of the social media site Flickr; the
+growth in popularity has a very similar pattern to that of other sites including YouTube.
+(Image from Google Trends, http://www.google.com/trends?q=flickr)
+economics we draw on models for the strategic behavior of individuals who interact with
+each other and operate as members of larger aggregates. From sociology — particularly the
+more mathematical aspects concerned with social networks — we draw on a broad set of
+theoretical frameworks for talking about the structure and dynamics of social groups.
+And the overall picture can help fill in pieces that are arguably missing from the intellectual
+landscape of each of these disciplines. Economics has developed rich theories for the
+strategic interaction among small numbers of parties, as well as for the cumulative behavior
+of large, homogeneous populations. The challenge it faces is that much of economic life
+takes place in the complex spectrum between these extremes, with macroscopic effects that
+arise from an intricate pattern of localized interactions. Sociology has developed some of the
+fundamental insights into the structure of social networks, but its network methodology has
+been refined in the domains and scales where data-collection has traditionally been possible
+— primarily, well-defined groups with tens to hundreds of people. The explosion of new contexts
+where we find network data and network applications — including enormous, digitally
+mediated ones — leads to new opportunities for how we can pose questions, formulate theories,
+and evaluate predictions about social networks. Computer science, with the rise of the
+Web and social media, has had to deal with a world in which the design constraints on large
+computing systems are not just technological ones but also human ones — imposed by the
+complex feedback effects that human audiences create when they collectively use the Web for
+communication, self-expression, and the creation of knowledge. A fully satisfactory theory
+of network structure and behavior has the potential to address the simultaneous challenges
+that all these fields are encountering.
+A recurring theme underlying these challenges is the way in which networks span many
+different levels of scale and resolution. There are interesting questions that reach from the
+Figure 1.7: From the social network of friendships in the karate club from Figure 1.1, we
+can find clues to the latent schism that eventually split the group into two separate clubs
+(indicated by the two different shadings of individuals in the picture).
+scale of small groups, such as the 34-person social network in Figure 1.1, all the way up to
+the level of whole societies or economies, or to the body of global knowledge represented by
+the Web. We will think of networks both at the level of explicit structures, like those in
+Figures 1.1–1.4, and at the level of aggregate effects, like the popularity curves in Figures 1.5
+and 1.6. As we look at networks of increasing scales, it becomes correspondingly more
+appropriate to take aggregate models into account. But the ability to work with massive
+network datasets has also enriched the picture, making it possible to study networks with
+billions of interacting items at a level of resolution where each connection is recorded. When
+an Internet search engine identifies the most useful pages from an index of the entire Web,
+for example, it is doing precisely this in the context of a specific task. Ultimately, it is an
+ongoing and challenging scientific problem to bridge these vastly different levels of scale, so
+that predictions and principles from one level can be reconciled with those of others.
+1.2 Central Themes and Topics
+With this set of ideas in mind, we now introduce some of the main topics the book will
+consider, and the ways in which these topics reinforce the underlying principles of networks.
+We begin with the two main bodies of theory that we will be building on — graph theory
+and game theory. These are theories of structure and behavior respectively: Graph theory
+is the study of network structure, while game theory provides models of individual behavior
+in settings where outcomes depend on the behavior of others.
+Graph Theory. In our discussion of graph theory, we will focus particularly on some of
+the fundamental ideas from social network analysis, framing a number of graph-theoretic
+concepts in these terms. The networks in Figures 1.1 and 1.2 hint at some of these ideas. In
+the corporate e-mail communication network from Figure 1.2, for example, we can see how
+the communication is balanced between staying within small organizational units and cutting
+across organizational boundaries. This is an example of a much more general principle in
+social networks — that strong ties, representing close and frequent social contacts, tend to
+be embedded in tightly-linked regions of the network, while weak ties, representing more
+casual and distinct social contacts, tend to cross between these regions. Such a dichotomy
+suggests a way of thinking about social networks in terms of their dense pockets of strong ties,
+and the ways in which they interact with each other through weaker ties. In a professional
+setting, it suggests a strategy for navigating one’s way through the social landscape of a
+large organization, by finding the structural holes between parts of the network that interact
+very little with each other. At a global scale, it suggests some of the ways in which weak
+ties can act as “short-cuts” that link together distant parts of the world, resulting in the
+phenomenon colloquially known as the six degrees of separation.
+Social networks can also capture the sources of conflict within a group. For example,
+latent conflicts are at work in the karate-club social network from Figure 1.1. The people
+labeled 1 and 34 (the darker circles) are particularly central in the network of friendships,
+with many connections to other people. On the other hand, they are not friends with each
+other, and in fact most people are only friends with one or the other of them. These two
+central people were, respectively, the instructor and the student founder of the club, and this
+pattern of non-interacting clusters was the most visible symptom of a conflict between them
+and their factions that ultimately splintered the group into two rival karate clubs, as shown
+in Figure 1.7. Later, we will see how the theory of structural balance can be used to reason
+about how fissures in a network may arise from the dynamics of conflict and antagonism at
+a purely local level.
+Game Theory. Our discussion of game theory starts from the observation that there
+are numerous settings in which a group of people must simultaneously choose how to act,
+knowing that the outcome will depend on the joint decisions made by all of them. One
+natural example is the problem of choosing a driving route through a network of highways
+at a time when traffic is heavy. If you’re a driver in such a situation, the delays you experience
+depend on the pattern of traffic congestion arising not just from your choice of route, but
+from the choices made by all other drivers as well. In this example, the network plays
+the role of a shared resource, and the combined actions of its users can either congest this
+Figure 1.8: In a network representing international trade, one can look for countries that
+occupy powerful positions and derive economic benefits from these positions [262]. (Image
+from http://www.cmu.edu/joss/content/articles/volume4/KrempelPlumper.html)
+resource or use it more efficiently. In fact, the interactions among people’s behavior can lead
+to counter-intuitive effects here: for instance, adding resources to a transportation network
+can in fact create incentives that seriously undermine its efficiency, in a phenomenon known
+as Braess’s Paradox [76].
+Another example that will recur in several settings throughout the book is the problem
+of bidding in an auction. If a seller is trying to sell a single item using an auction, then the
+success of any one bidder in the auction (whether she gets the item, and how much she pays)
+depends not just on how she bids but on how everyone else bids as well — and so an optimal
+bidding strategy should take this into account. Here too there are counter-intuitive effects at
+work: for example, if the seller introduces more aggressive pricing rules into the auction, he
+can make the strategic behavior of the bidders much more complex, and in particular induce
+optimal bidding that offsets whatever gains he might have expected to make from the new
+rules. We will find that auctions represent a basic kind of economic interaction that can be
+1.2. CENTRAL THEMES AND TOPICS 11
+Figure 1.9: In some settings, such as this map of Medieval trade routes, physical
+networks constrain the patterns of interaction, giving certain participants
+an intrinsic economic advantage based on their network position. (Image from
+http://upload.wikimedia.org/wikipedia/commons/e/e1/Late Medieval Trade Routes.jpg.)
+directly generalized to more complex patterns of interactions on networks.
+As a general part of our investigation of game theory, we will abstract such situations
+with inter-dependent behavior into a common framework, where a collection of individuals
+must each commit to a strategy, thereby receiving a payoff that depends on the strategies
+chosen by everyone. Interpreting our preceding examples in this light, the strategies available
+to a driver on a set of highways consist of the different options for routes he can take, and
+the payoff to this driver is based on his resulting travel time. In an auction, the strategies are
+the different choices for how to bid, and the payoff to a bidder is the difference between the
+value of the goods she receives and the price she pays. This general framework allows us to
+make predictions about how people will behave in a range of such situations. A fundamental
+part of this framework will be the notion of equilibrium — a state that is “self-reinforcing,”
+in that it provides no individual with an incentive to unilaterally change his or her strategy,
+even knowing how others will behave.
+Markets and Strategic Interaction on Networks. Once we’ve developed graph theory
+and game theory, we can combine them to produce richer models of behavior on networks.
+One natural setting where we can explore this is in models of trade and other forms of
+economic activity. The interactions among buyers and sellers, or pairs of counterparties to a
+trade or loan, naturally forms a network. In Figure 1.3 we saw an example of such a network,
+with links between banks engaging in a loan. Figure 1.8 shows another example: a network
+representation of international trade among 28 countries [262], with the size of each country
+depicting its total amount of trade, and the thickness of each link connecting two countries
+indicating the amount of trade between them.
+Where do these networks come from? In some cases, they are the traces of what happens
+when each participant seeks out the best trading partner they can, guided by how highly
+they value different trading opportunities. In other cases, they also reflect fundamental
+underlying constraints in the market that limit the access of certain participants to each
+other. In modern markets, these constraints could be institutional restrictions based on
+regulations; in other settings, they could be based on physical constraints like geography.
+For example, Figure 1.9 shows a map of trade routes in medieval Europe: when the physical
+movement of goods is costly and difficult, the economic outcome for different cities can
+depend significantly on where they are located in the underlying transportation network.
+In all these settings, then, the network structure encodes a lot about the pattern of
+trade, with the success levels of different participants affected by their positions in the
+network. Having a powerful position, however, depends not just on having many connections
+providing different options, but also on more subtle features — such as the power of the
+other individuals to which one is connected. We will see that this idea of network positions
+conferring power has been extended much more broadly, reaching beyond just economic
+exchange to suggest how power imbalances in many forms of social relationships may have
+their roots in the network patterns that the relationships form.
+Information networks. The information we deal with on-line has a fundamental network
+structure. Links among Web pages, for example, can help us to understand how these pages
+are related, how they are grouped into different communities, and which pages are the most
+prominent or important. Figure 1.4 illustrates some of these issues: it shows a network of
+links among political blogs constructed by Lada Adamic and Natalie Glance in the period
+leading up to the 2004 U.S. Presidential election [5]. Although the network is too large
+here to be able to really see the detailed structure around individual blogs, the image and
+its layout does convey the clear separation of the blogging network into two large clusters,
+
+which turn out to closely correspond to the sets of liberal and conservative blogs respectively.
+From more detailed analysis of the raw linkage data underlying the image, it is possible to
+pick out the prominent blogs within each of these clusters.
+Current Web search engines such as Google make extensive use of network structure in
+evaluating the quality and relevance of Web pages. For producing search results, these sites
+evaluate the prominence of a Web page not simply based on the number of links it receives,
+but based on more subtle aspects of its position in the network. For example, a page can be
+viewed as more prominent if it receives links from pages that are themselves prominent; this
+is a circular kind of notion in which prominence is defined in terms of itself, but we will see
+that this circularity can be resolved through careful definitions that are based on a kind of
+equilibrium in the link structure.
+The interaction between search engines and the authors of Web pages is also a compelling
+example of a system where “connectedness” at the level of behavior produces interesting
+effects. Whenever a search engine introduces a new method for evaluating Web pages,
+deciding which pages to rank highly in its results, the creators of Web content react to this:
+they optimize what they put on the Web so as to try achieving a high rank under the new
+method. As a result, changes to a search engine can never be designed under the assumption
+that the Web will remain static; rather, the Web inevitably adapts to the ways in which
+search engines evaluate content, and search methods must be developed with these feedback
+effects in mind.
+This inherently game-theoretic interaction existed in latent form even in the early days of
+the Web. Over time it became more explicit and formalized, through the design of markets
+for advertising based on search, with advertising space allocated by auction mechanisms.
+Today, such markets are a principal source of revenue for the main search engines.
+Network Dynamics: Population Effects. If we observe a large population over time,
+we’ll see a recurring pattern by which new ideas, beliefs, opinions, innovations, technologies,
+products, and social conventions are constantly emerging and evolving. Collectively, we
+can refer to these as social practices [382] (holding opinions, adopting products, behaving
+according to certain principles) that people can choose to adopt or not. As we watch a
+group or society over time, we’ll see that new practices can be introduced and either become
+popular or remain obscure; meanwhile, established practices can persist or potentially fade
+over time. If we think back to Figures 1.5 and 1.6, they show the adoption of particular
+practices over time — the use of two very popular social media sites (taking the total number
+of Google queries for these sites over time as proxies for their popularity). Figure 1.10 depicts
+an analogous curve for the social-networking site MySpace, where we see a life cycle of rapid
+adoption followed by a slower period of decline, as MySpace’s dominance was challenged by
+newer competitors including Facebook.
+14 CHAPTER 1. OVERVIEW
+Figure 1.10: Cascading adoption of a new technology or service (in this case, the socialnetworking
+site MySpace in 2005-2006) can be the result of individual incentives to use the
+most widespread technology — either based on the informational effects of seeing many other
+people adopt the technology, or the direct benefits of adopting what many others are already
+using. (Image from Google Trends, http://www.google.com/trends?q=myspace)
+The way in which new practices spread through a population depends in large part on
+the fact that people influence each other’s behavior. In short, as you see more and more
+people doing something, you generally become more likely to do it as well. Understanding
+why this happens, and what its consequences are, is a central issue for our understanding of
+networks and aggregate behavior.
+At a surface level, one could hypothesize that people imitate the decisions of others simply
+because of an underlying human tendency to conform: we have a fundamental inclination
+to behave as we see others behaving. This is clearly an important observation, but as an
+explanation it leaves some crucial questions unresolved. In particular, by taking imitation as
+a given, we miss the opportunity to ask why people are influenced by the behavior of others.
+This is a broad and difficult question, but in fact it is possible to identify multiple reasons
+why even purely rational agents — individuals with no a priori desire to conform to what
+others are doing — will nonetheless copy the behavior of others.
+One class of reasons is based on the fact that the behavior of others conveys information.
+You may have some private information on which to base a decision between alternatives,
+but if you see many people making a particular choice, it is natural to assume that they too
+have their own information, and to try inferring how people are evaluating different choices
+from how they are behaving. In the case of a Web site like YouTube or Flickr, seeing a lot
+of people using it can suggest that these people know something about its quality. Similarly,
+seeing that a certain restaurant is extremely crowded every weekend can suggest that many
+people think highly of it. But this sort of reasoning raises surprisingly subtle issues: as many
+people make decisions sequentially over time, the later decisions can be based in complex
+1.2. CENTRAL THEMES AND TOPICS 15
+ways on a mixture of private information and inferences from what has already happened,
+so that the actions of a large set of people can in fact be based on surprisingly little genuine
+information. In an extreme form of this phenomenon we may get information cascades,
+where even rational individuals can choose to abandon their private information and follow
+a crowd.
+There is a completely different but equally important class of reasons why people might
+imitate the behavior of others — when there is a direct benefit from aligning your behavior
+with that of others, regardless of whether they are making the best decision. Let’s go back
+to our examples of social-networking and media-sharing sites. If the value of such sites is in
+the potential to interact with others, to have access to a wide range of content, and to have
+a large audience for the content you post, then these types of sites become more and more
+valuable as people join them. In other words, regardless of whether YouTube had better
+features than its competitors, once it became the most popular video-sharing site, there was
+almost by definition an added value in using it. Such network effects amplify the success of
+products and technologies that are already doing well; in a market where network effects are
+at work, the leader can be hard to displace. Still, this type of dominance is not necessarily
+permanent; as we will see, it is possible for a new technology to displace an old one if it
+offers something markedly different — and often when it starts in a part of the network
+where there is room for it to take hold.
+These considerations show how popularity — as a general phenomenon — is governed
+by a “rich-get-richer” feedback process in which popularity tends to build on itself. It is
+possible to build mathematical models for this process, with predictions for the distribution
+of popularity that are borne out by empirical data — a picture in which society’s attention
+is divided between a small number of prominent items and a “long tail” of more obscure
+ones.
+Network Dynamics: Structural Effects. As we’ve just seen, the question of how people
+influence each other’s behavior is already quite subtle even when the actual structure of the
+underlying network is left implicit. But taking network structure into account provides
+important further insights into how such kinds of influence take place. The underlying
+mechanisms — based on information and direct benefits — are present both at the level of
+whole populations, and also at a local level in the network, between an individual and his
+or her set of friends or colleagues. In many cases you care more about aligning your own
+behavior with the behavior of your immediate neighbors in the social network, rather than
+with the population as a whole.
+When individuals have incentives to adopt the behavior of their neighbors in the network,
+we can get cascading effects, where a new behavior starts with a small set of initial adopters,
+and then spreads radially outward through the network. Figure 1.11 shows a small example,
+16 CHAPTER 1. OVERVIEW
+Figure 1.11: When people are influenced by the behaviors their neighbors in the network, the
+adoption of a new product or innovation can cascade through the network structure. Here,
+e-mail recommendations for a Japanese graphic novel spread in a kind of informational or
+social contagion. (Image from Leskovec et al. [271].)
+in which e-mail recommendations for a particular Japanese graphic novel spread outward
+from four initial purchasers. By reasoning about the underlying network structure, we will
+see how it becomes possible for a superior technology to displace a universally-used but
+inferior one, if the superior technology starts in a portion of the network where it can
+make progress incrementally, a few people at a time. We will also find that the diffusion of
+technologies can be blocked by the boundary of a densely-connected cluster in the network —
+a “closed community” of individuals who have a high amount of linkage among themselves,
+and hence are resistant to outside influences.
+Cascading behavior in a network is sometimes referred to as “social contagion,” because
+it spreads from one person to another in the style of a biological epidemic. Figure 1.12
+reinforces this analogy; it shows the beginning of a tuberculosis outbreak [16] and forms a
+visual counterpart to the social cascade in Figure 1.11. There are fundamental differences
+in the underlying mechanisms between social and biological contagion — social contagion
+tends to involve decision-making on the part of the affected individuals, whereas biological
+contagion is based on the chance of catching a disease-causing pathogen through contact
+with another individual. But the network-level dynamics are similar, and insights from the
+study of biological epidemics are also useful in thinking about the processes by which things
+spread on networks.
+The act of spreading, which transmits both ideas and diseases, is just one kind of dynamic
+1.2. CENTRAL THEMES AND TOPICS 17
+Figure 1.12: The spread of an epidemic disease (such as the tuberculosis outbreak shown
+here) is another form of cascading behavior in a network. The similarities and contrasts
+between biological and social contagion lead to interesting research questions. (Image from
+Andre et al. [16].)
+process that takes place on networks. A different process that we also consider is search —
+the way people can explore chains of social contacts for information or referrals to others.
+The surprising effectiveness with which people are able to accomplish such tasks, confirmed
+both by experiments and everyday experience, suggests characteristic patterns of structure
+at the network level that help facilitate these types of activities.
+Institutions and Aggregate Behavior. Once we have developed some of the basic forces
+underlying networks and strategic behavior, we can ask how the institutions a society designs
+can, in effect, channel these forces to produce certain kinds of overall outcomes. Our notion
+of an institution here is very broad — it can be any set of rules, conventions, or mechanisms
+that serve to synthesize individual actions into a pattern of aggregate behavior. We’ve
+already discussed particular examples of this process: for example, in the way in which a
+particular auction mechanism leads to bidding behavior and hence prices; or the way in
+which the Internet search industry has become a significant influence on how Web content
+is created.
+
+Figure 1.13: Prediction markets, as well as markets for financial assets such as stocks, can synthesize
+individual beliefs about future events into a price that captures the aggregate of these beliefs. The plot here
+depicts the varying price over time for two assets that paid $1 in the respective events that the Democratic
+or Republican nominee won the 2008 U.S. Presidential election. (Image from Iowa Electronic Markets,
+http://iemweb.biz.uiowa.edu/graphs/graph PRES08 WTA.cfm.)
+There are a number of settings in which this kind of analysis, applied to fundamental
+social institutions, can be very informative. One such setting is to think about markets and
+their role in aggregating and conveying information. In a financial market, for example,
+the market price serves as an aggregator of individuals’ beliefs about the value of the assets
+being traded. In this sense, the overall behavior of the market serves to synthesize the
+information that is held by many participants; consequently, when people speak of what the
+market “expects,” they are really referring to the expectations that can be read out of this
+composite of information.
+How this synthesis works depends on how the market is designed, and on the kind of
+individual and aggregate behavior that results. Nor are such issues restricted to markets
+for financial assets such as stocks. Recent work, for example, has explored the design of
+1.2. CENTRAL THEMES AND TOPICS 19
+prediction markets that use a market mechanism to provide predictions of future events such
+as the outcomes of elections. Here, participants in the market purchase assets that pay a
+fixed amount if a certain event takes place. In this way, the price of the asset reflects an
+aggregate estimate for the probability of the event, and such estimates have been found to
+be highly accurate in a number of cases — with the market’s aggregate predictions often
+outperforming the opinions of expert analysts. Figure 1.13 shows an example from the
+2008 U.S. Presidential Election: the upper curve depicts the price over time for an asset
+that paid $1 in the event that the Democratic Party’s nominee won the election, and the
+lower curve depicts the corresponding price for the Republican Party’s nominee. Note that
+the market was already functioning before the identities of these nominees were known,
+and it shows a clear aggregate reaction to certain events such as the contentious end of the
+Democratic primary process between Obama and Clinton (in early May) and the Republican
+National Convention (in early September), both of which brought the prices for the opposing
+predictions close to equality, before they diverged once and for all as the actual election
+neared.
+Voting is another social institution that aggregates behavior across a population. While
+markets and voting systems both seek a synthesis of individual beliefs or preferences, there
+are some fundamental contrasts in the settings where they are generally applied. We have just
+outlined a view of markets as aggregators of beliefs about the probabilities of future events.
+In this view, each individual belief that forms an ingredient of the market’s consensus will
+ultimately be confirmed as correct or incorrect, based on whether certain relevant future
+events actually happen or not. Voting systems, on the other hand, are typically applied
+to cases where each individual has a preference or prioritization over a set of arbitrary and
+subjective choices for which there may be no eventual way to say that any one is “right” or
+“wrong.” The question is then to synthesize a cumulative social preference that reconciles,
+as well as possible, the conflicting priorities of the individuals in the population. In our
+analysis of voting, we will explore a long history of work showing that the task of producing
+such a social preference is fraught with unavoidable difficulties — results that formalize such
+difficulties began with work of 18th-century French philosophers, and came fully into focus
+with Arrow’s Impossibility Theorem in the 1950s.
+This perspective on institutions is a natural one for social systems that are highly interconnected.
+Whenever the outcomes across a population depend on an aggregate of everyone’s
+behavior, the design of the underlying institutions can have a significant effect on how this
+behavior is shaped, and on the resulting consequences for society.
+Looking ahead. Examples, phenomena, and principles such as these will motivate the
+ways in which we analyze networks, behavior, and population-level dynamics throughout the
+book. Understanding whether a principle holds across many settings will involve formulating
+
+and reasoning about mathematical models, and also reasoning qualitatively about these
+models and searching for their broader implications. In this way, we can hope to develop
+a network perspective as a powerful way of looking at complex systems in general — a
+way of thinking about social dynamics, economic interaction, on-line information, designed
+technology, and natural processes, and approaching such systems with an eye toward their
+patterns of internal structure and the rich feedback effects that result.

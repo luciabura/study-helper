@@ -92,7 +92,7 @@ def get_graph_tokens(tokens):
 
 
 def get_keywords(text):
-    tokens = preprocess.clean_and_tokenize(text)
+    tokens = preprocess.clean_to_doc(text)
     original_sequence = [token.text.lower() for token in tokens]
 
     graph_tokens = get_graph_tokens(tokens)
