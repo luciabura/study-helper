@@ -19,6 +19,8 @@ def initialize_patetrns():
     acomp_1 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'acomp'}]
     acomp_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'acomp'}]
 
+    sv = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}]
+    sv_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}]
 
     attr_1 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'attr'}]
     attr_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'attr'}]
@@ -38,6 +40,10 @@ def initialize_patetrns():
                    ANY_TOKEN, {DEP: 'pobj'}]
     d_obj_p_obj_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dobj'},
                      ANY_TOKEN, {DEP: 'pobj'}]
+    iobj_dobj = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'iobj'},
+                   ANY_TOKEN, {DEP: 'dobj'}]
+    iobj_dobj_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'iobj'},
+                     ANY_TOKEN, {DEP: 'dobj'}]
     d_obj_p_obj_inv = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'pobj'},
                        ANY_TOKEN, {DEP: 'dobj'}]
     d_obj_p_obj_inv_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'pobj'},
@@ -59,6 +65,15 @@ def initialize_patetrns():
     # MATCHER.add("CCOMP", None, ccomp_1)
     # MATCHER.add("CCOMP", None, ccomp_2)
     # 12.204258675078865
+    #
+    MATCHER.add("SV", None, sv)
+    MATCHER.add("SV", None, sv_2)
+
+    agent_1 = [{DEP: 'nsubj'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'agent'}, ANY_TOKEN, {DEP: 'pobj'}]
+    agent_2 = [{DEP: 'nsubjpass'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'agent'}, ANY_TOKEN, {DEP: 'pobj'}]
+
+    MATCHER.add("AGENT", None, sv)
+    MATCHER.add("AGENT", None, sv_2)
 
     # MATCHER.add("DOBJ", None, direct_object_1)
     # MATCHER.add("DOBJ", None, direct_object_2)
@@ -79,8 +94,8 @@ def initialize_patetrns():
     # 48.20583596214511 -- all
     # only last 2 -- 25.019716088328074
 
-    MATCHER.add("XCOMP", xcomp_1)
-    MATCHER.add("XCOMP", xcomp_2)
+    # MATCHER.add("XCOMP", xcomp_1)
+    # MATCHER.add("XCOMP", xcomp_2)
 
 
 def count_matches():
