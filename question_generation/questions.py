@@ -483,7 +483,7 @@ def generate_dobj_questions(match):
 
 def generate_questions(text):
     # The protocol for getting sentences with corresponding scores and keywords
-    text_as_doc = preprocess.clean_and_tokenize(text)
+    text_as_doc = preprocess.clean_to_doc(text)
     keywords_with_scores = get_keywords_with_scores(text_as_doc)
     sentences = preprocess.sentence_tokenize(text)
     sentences_with_keywords_and_scores = get_sentences_with_keywords_and_scores(sentences, keywords_with_scores)
@@ -675,7 +675,7 @@ def generate_q():
 
 def generate_questions_trial():
     text = read_file(input('Filepath: '))
-    document = preprocess.clean_and_tokenize(text)
+    document = preprocess.clean_to_doc(text)
 
     sentence_provider = SentenceProvider(document)
 

@@ -329,18 +329,20 @@ if __name__ == '__main__':
     document = preprocess.clean_to_doc(FILE_TEXT)
     lemma_provider = KeywordProvider(document)
 
-    science = preprocess.clean_to_doc("systems")
-    lemma_provider_topic = KeywordProvider(document, science)
+    print(lemma_provider.show_key_phrases())
 
-    print("\nWithout topic")
-    key_phrases = lemma_provider.key_phrases
-    for key_phrase in key_phrases:
-        print("Key-phrase: {}, Score: {}".format(key_phrase.text, key_phrase.score))
-
-    print("\nWith topic")
-    key_phrases = lemma_provider_topic.key_phrases
-    for key_phrase in key_phrases:
-        print("Key-phrase: {}, Score: {}".format(key_phrase.text, key_phrase.score))
+    # science = preprocess.clean_to_doc("systems")
+    # lemma_provider_topic = KeywordProvider(document, science)
+    #
+    # print("\nWithout topic")
+    # key_phrases = lemma_provider.key_phrases
+    # for key_phrase in key_phrases:
+    #     print("Key-phrase: {}, Score: {}".format(key_phrase.text, key_phrase.score))
+    #
+    # print("\nWith topic")
+    # key_phrases = lemma_provider_topic.key_phrases
+    # for key_phrase in key_phrases:
+    #     print("Key-phrase: {}, Score: {}".format(key_phrase.text, key_phrase.score))
     # original_provider = OriginalKeywordProvider(document)
 
     # print('\n Keyphrases:')

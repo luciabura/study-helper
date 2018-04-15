@@ -5,7 +5,11 @@ from utilities import NLP
 OP = 'OP'
 IS_ANY_TOKEN = NLP.vocab.add_flag(lambda x: True)
 ANY_TOKEN = {OP: '*', IS_ANY_TOKEN: True}
+NO_TOKEN = {OP: '!', IS_ANY_TOKEN: True}
 ANY_ALPHA = {IS_ALPHA: True, OP: "*"}
+
+# IS_SUBJECT = NLP.add_flag(lambda x: "subj" in x.dep_)
+# SUBJECT = {IS_SUBJECT: True}
 
 
 class Match(object):
