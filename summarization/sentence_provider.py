@@ -29,14 +29,14 @@ class Sentence(object):
 
         self.simplified_versions = []
 
-    def compute_score(self):
+    def _compute_score(self):
         score = self.score
 
-        # for kp in self.keywords:
-        #     div = math.log(len(self.keywords), 2)
-        #     if div == 0:
-        #         div = 1
-        #     score += kp.score / div
+        for kp in self.keywords:
+            div = math.log(len(self.keywords), 2)
+            if div == 0:
+                div = 1
+            score += kp.score / div
 
         self.score = score
 
@@ -98,7 +98,7 @@ class SentenceProvider(object):
     @staticmethod
     def calculate_final_scores(sentence_dictionary):
         for sent in sentence_dictionary.values():
-            sent.compute_score()
+            sent._compute_score()
 
     @staticmethod
     def sort_by_score(unsorted, descending=False):
