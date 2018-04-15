@@ -51,6 +51,7 @@ def get_verb_phrase(token, sentence):
     for child in token.subtree:
         if (child.dep_.startswith("aux") and child.head == token) \
                 or (child.dep_ == 'neg' and child.head == token) \
+                or (child.dep_ == 'prt' and child.head == token) \
                 or child == token:
             if start_index > child.i:
                 start_index = child.i
@@ -63,12 +64,14 @@ def get_verb_phrase(token, sentence):
 
 def is_valid_sentence(sentence):
     """
-    TODO: Implement
     :param sentence:
     :return:
     """
     # This assumes sentence is passes as doc
     sent_span = sentence[0:]
+
+    if len(sent_span) == 0:
+        return False
 
     if sent_span.root.pos_ != "VERB":
         return False
@@ -98,6 +101,18 @@ def is_valid_subject(subject):
         return False
 
     return True
+
+
+def safe_join(sentence_components):
+    to_replace = [" ,", " .", " - ", " '", " ;", " :", " !", " ?"]
+    safe = ' '.join(sentence_components)
+
+    for tok in to_replace:
+        if tok in safe:
+            new_tok = tok.replace(' ', '')
+            safe = safe.replace(tok, new_tok)
+
+    return safe
 
 
 def show_dependencies(sentence, port=5000):
