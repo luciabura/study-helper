@@ -3,11 +3,11 @@ from collections import OrderedDict
 
 from spacy.matcher import Matcher
 from spacy.tokens import Token, doc
+from wordfreq import word_frequency
 
 import question_generation.sentence_simplifier as simplifier
 # from evaluation.question_evaluation import spacy_perplexity
 from keyword_extraction.keywords_TR_lem import KeyPhrase, Keyword
-from keyword_extraction.keywords_filtered import get_keywords_with_scores
 from neuralcoref import Coref
 from question_generation import *
 from summarization.sentence_provider import SentenceProvider, Sentence
@@ -16,7 +16,6 @@ from text_processing import preprocessing as preprocess
 from text_processing.grammar import *
 from utilities import NLP
 from utilities.read_write import read_file
-from wordfreq import word_frequency
 
 WHO_ENTS = ['PERSON', 'NORP']
 WHEN_ENTS = ['DATE']
@@ -45,7 +44,7 @@ class Question:
 
         for tok in self.content:
             if (tok.tag_ == 'PRON' or tok.tag_ == 'PRP') or \
-            (tok.tag_ == 'DT' and tok.dep_.startswith('nsubj')):
+                    (tok.tag_ == 'DT' and tok.dep_.startswith('nsubj')):
                 if tok.text in ['we', 'you']:
                     continue
                 self.score = 0
@@ -81,17 +80,16 @@ class Question:
 
         beta = 0.2
         if score_q and score_kp:
-            score = (1.0 + beta ** 2)*(score_q * score_kp)/(score_q + (beta ** 2) * score_kp)
+            score = (1.0 + beta ** 2) * (score_q * score_kp) / (score_q + (beta ** 2) * score_kp)
         elif score_q:
             score = score_q
         else:
-            score = score_kp*(1-beta)
+            score = score_kp * (1 - beta)
 
         # if len(self.content) > 0:
         #     score /= math.log(len(self.content))
 
         self.score = score
-
 
     def similarity(self, question2):
         if isinstance(question2, Question):
@@ -108,9 +106,9 @@ def sequence_surprize(text):
     word_list = text.split()
     av_s = 0
     for word in word_list:
-        wf = word_frequency(word, lang='en')*1e8
+        wf = word_frequency(word, lang='en') * 1e8
         if wf:
-            av_s += 1/wf
+            av_s += 1 / wf
         else:
             av_s += 0.1
 
@@ -141,14 +139,14 @@ def initialize_question_patterns():
     d_obj_p_obj = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dobj'},
                    ANY_TOKEN, {DEP: 'pobj'}]
     d_obj_p_obj_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dobj'},
-                   ANY_TOKEN, {DEP: 'pobj'}]
+                     ANY_TOKEN, {DEP: 'pobj'}]
 
     d_obj_p_obj_inv = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'pobj'},
                        ANY_TOKEN, {DEP: 'dobj'}]
     d_obj_p_obj_inv_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'pobj'},
-                       ANY_TOKEN, {DEP: 'dobj'}]
+                         ANY_TOKEN, {DEP: 'dobj'}]
     dative_pobj = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dative'},
-                       ANY_TOKEN, {DEP: 'pobj'}]
+                   ANY_TOKEN, {DEP: 'pobj'}]
 
     dative_object_1 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dative'},
                        ANY_TOKEN, {DEP: 'dobj'}]
@@ -526,10 +524,10 @@ def generate_dobj_questions(match):
 
     if is_valid_subject(subject_phrase):
         questions.append(('Describe the relation or interaction between '
-                         + format_phrase(subject_phrase)
-                         + ' and '
-                         + format_phrase(direct_object_phrase)
-                         + '.', verb_phrase))
+                          + format_phrase(subject_phrase)
+                          + ' and '
+                          + format_phrase(direct_object_phrase)
+                          + '.', verb_phrase))
         question = [wh_word_object]
 
         if len(verb_form_with_subject) == 1:
@@ -556,6 +554,7 @@ def generate_dobj_questions(match):
     questions.append((question, subject_phrase))
 
     return questions
+
 
 #
 # def generate_questions(text):
@@ -630,7 +629,8 @@ def trial_sentences():
 
     text = NLP(u"Mark's fingerprints were found after the investigation.")
     text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
-    text = NLP(u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
+    text = NLP(
+        u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
     text = NLP(u'This text is one of the most famous ones in history.')
     text = NLP(u'Darwin studied how species evolve.')
     text = NLP(u'How does this happen?.')
@@ -749,8 +749,10 @@ def generate_q():
     text = NLP(u"Apple’s first logo, designed by Jobs and Wayne, depicts Sir Isaac Newton sitting under an apple tree.")
     text = NLP(u"John gave a present to Joanna.")
     text = NLP(u'Darwin studied how species evolve.')
-    text = NLP(u'During the Gold Rush years in northern California, Los Angeles became known as the "Queen of the Cow Counties" for its role in supplying beef and other foodstuffs to hungry miners in the north.')
-    text = NLP(u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
+    text = NLP(
+        u'During the Gold Rush years in northern California, Los Angeles became known as the "Queen of the Cow Counties" for its role in supplying beef and other foodstuffs to hungry miners in the north.')
+    text = NLP(
+        u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
     # text = NLP(u'Almost immediately, though, this was replaced by Rob Janoff’s “rainbow Apple”, the now-familiar rainbow-colored silhouette of an apple with a bite taken out of it.')
 
     # text = NLP(u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
@@ -767,12 +769,12 @@ def generate_q():
     kw2 = Keyword(sentence_object_mock.as_doc[10], score=0.1, sentence=sentence_object_mock.as_doc)
     sentence_object_mock.add(kw1)
     sentence_object_mock.add(kw1)
-    sentence_object_mock.add(KeyPhrase(start_index=9, end_index=10, sentence=sentence_object_mock.as_doc, keywords=[kw1, kw2]))
+    sentence_object_mock.add(
+        KeyPhrase(start_index=9, end_index=10, sentence=sentence_object_mock.as_doc, keywords=[kw1, kw2]))
     generate_questions_trial(trial_sentence=sentence_object_mock, simplify=True, debug=True)
 
 
 def generate_questions(sentence=None, text=None, trim=True, simplify=False):
-
     # TODO: normal per sentence, option of including rest of pipeline or not for evaluation
     if sentence and text:
         print("Please only choose one form of input")
@@ -809,9 +811,7 @@ def generate_questions(sentence=None, text=None, trim=True, simplify=False):
             sentences = simplifier.simplify_sentence(sentence.text)
 
 
-
 def generate_questions_trial(trial_sentence=None, text=None, simplify=False, debug=False):
-
     if trial_sentence:
         top_sentences = [trial_sentence]
 
@@ -886,7 +886,6 @@ def generate_questions_trial(trial_sentence=None, text=None, simplify=False, deb
     #     for q2 in sorted_questions:
     #         if question is not q2:
     #             print("Q1: {}\nQ2: {}\nSimilarity:{}".format(question.content, q2.content, question.similarity(q2)))
-
 
     return sorted_questions
 

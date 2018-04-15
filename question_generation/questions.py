@@ -7,11 +7,9 @@ import question_generation.sentence_simplifier as simplifier
 from keyword_extraction.keywords_filtered import get_keywords_with_scores
 from question_generation import *
 from summarization.sentence_provider import SentenceProvider
-from summarization.summary import get_sentences_with_keywords_and_scores, get_top_sentences
 from text_processing import preprocessing as preprocess
 from text_processing.grammar import has_pronouns, extract_noun_phrase, get_verb_phrase, is_past_tense, is_3rd_person, \
     is_valid_subject, show_dependencies, is_vowel
-from text_processing.preprocessing import clean_and_format, sentence_tokenize
 from utilities import NLP
 from utilities.read_write import read_file
 
@@ -730,10 +728,9 @@ def handle_match(pattern_name):
 
 
 if __name__ == '__main__':
-    # generate_questions(TEST_TEXT)
-    # doc = NLP(u'Computer Science is the study of both practical and theoretical approaches to computers. A computer scientist specializes in the theory of computation.')
-    # sentences = list(doc.sents)
-    # show_dependencies(sentences[1].as_doc(), port=5001)
+    # generate_questions(TEST_TEXT) doc = NLP(u'Computer Science is the study of both practical and theoretical
+    # approaches to computers. A computer scientist specializes in the theory of computation.') sentences = list(
+    # doc.sents) show_dependencies(sentences[1].as_doc(), port=5001)
     generate_q()
     # trial_sentences()
     # generate_questions_trial()
