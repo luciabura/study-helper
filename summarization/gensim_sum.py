@@ -8,7 +8,7 @@ IDENTIFIER = '_B'
 
 def get_summary(text):
     text = preprocess.clean_and_format(text)
-    return summarize(text)
+    return summarize(text, ratio=0.1)
 
 
 if __name__ == '__main__':

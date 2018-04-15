@@ -16,7 +16,7 @@ def clean_files(ref_name, text_words, ref_ngrams):
                 OK = 0
                 break
 
-        if(OK == 1):
+        if (OK == 1):
             new_ngrams.append(ngram)
 
     for ngram in new_ngrams:
@@ -37,7 +37,7 @@ def clean_hulth():
         text = read_file(file)
         ref = read_file(ref_name)
 
-        text_words = [token.text.lower() for token in preprocessor.clean_and_tokenize(text)]
+        text_words = [token.text.lower() for token in preprocessor.clean_to_doc(text)]
 
         ref_ngrams = ref.split(';')
         for i, ngram in enumerate(ref_ngrams):
@@ -45,7 +45,7 @@ def clean_hulth():
             if '' in ref_ngrams[i]:
                 ref_ngrams[i].remove('')
 
-        ref_name = name+".key"
+        ref_name = name + ".key"
         clean_files(ref_name, text_words, ref_ngrams)
 
 
@@ -62,7 +62,7 @@ def clean_krapivin():
     #     text = read_file(file)
     #     ref = read_file(ref_name)
     FILE_PATH = input('Enter the absolute path of '
-                          'the file you want to extract the keywords from: \n')
+                      'the file you want to extract the keywords from: \n')
     FILE_TEXT = read_file(FILE_PATH)
     lines = FILE_TEXT.splitlines()
     new_lines = []
@@ -71,11 +71,12 @@ def clean_krapivin():
             new_lines.append(line)
 
     text = ' '.join(new_lines)
-    text_words = [token.text for token in preprocessor.clean_and_tokenize(text)]
+    text_words = [token.text for token in preprocessor.clean_to_doc(text)]
     text_words = correct_words(text_words)
     text = ' '.join(text_words)
     print(text)
     # print new_lines
+
 
 def correct_words(words):
     new_words = []
@@ -87,6 +88,7 @@ def correct_words(words):
             new_words.append(new_word)
 
     return new_words
+
 
 if __name__ == '__main__':
     # clean_hulth()

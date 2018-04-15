@@ -1,3 +1,4 @@
+sumeval
 nltk
 numpy
 networkx
@@ -6,3 +7,5 @@ tensorflow
 pytest
 spacy
 gensim
+wordfreq
+sumy

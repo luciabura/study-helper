@@ -218,13 +218,7 @@ def get_keywords(text, keyword_count=10):
     return keyphrases[0:keyword_count]
 
 
-def filter_keyphrases():
-    # TODO:
-    return 0
-
-
 def get_word_with_rank(scores, word):
-    # TODO:
     print(word + ": " + str(scores[word]));
 
 

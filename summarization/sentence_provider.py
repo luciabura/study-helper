@@ -12,6 +12,7 @@ import networkx as nx
 
 from keyword_extraction.keywords_TR_lem import KeywordProvider, Keyword, KeyPhrase
 from text_processing import preprocessing as preprocess
+from utilities import NLP
 from utilities.read_write import read_file
 
 IDENTIFIER = '_C'
@@ -31,11 +32,11 @@ class Sentence(object):
     def compute_score(self):
         score = self.score
 
-        for kp in self.keywords:
-            div = math.log(len(self.keywords), 2)
-            if div == 0:
-                div = 1
-            score += kp.score / div
+        # for kp in self.keywords:
+        #     div = math.log(len(self.keywords), 2)
+        #     if div == 0:
+        #         div = 1
+        #     score += kp.score / div
 
         self.score = score
 
@@ -61,6 +62,7 @@ class SentenceProvider(object):
 
         self.sentence_objects = []
 
+        # Expect token topic
         self.topic = topic
 
         self.__compute_sentences()
@@ -81,10 +83,10 @@ class SentenceProvider(object):
 
     def get_top_sentences(self, sentence_count=None, trim=True):
         if sentence_count is None:
-            sentence_count = math.floor(len(self.sentences)/5)
+            sentence_count = math.ceil(len(self.sentences)/11)
 
-        if sentence_count < 2:
-            print('Please provide more text for an accurate summary.')
+        # if sentence_count < 2:
+            # print('Please provide more text for an accurate summary.')
 
         if trim:
             return self.sentence_objects[0:sentence_count]
@@ -176,7 +178,7 @@ class SentenceProvider(object):
 
 
 def get_summary(file_text, sentence_count=None, trim=True):
-    d = preprocess.clean_and_tokenize(file_text)
+    d = preprocess.clean_to_doc(file_text)
     sentence_prov = SentenceProvider(d)
 
     return sentence_prov.get_summary(sentence_count, trim)
@@ -188,10 +190,15 @@ if __name__ == '__main__':
     # OUTPUT_DIR = input('Directory to put summary in: \n')
     FILE_TEXT = read_file(FILE_PATH)
 
-    document = preprocess.clean_and_tokenize(FILE_TEXT)
+    document = preprocess.clean_to_doc(FILE_TEXT)
     summarizer = SentenceProvider(document)
 
-    print(summarizer.get_summary(sentence_count=4))
+    topic = NLP(input("Topic?: "))
+    summarizer_topic = SentenceProvider(document, topic=topic)
+
+    print(summarizer.get_summary())
+    print("")
+    print(summarizer_topic.get_summary())
     # print(summarizer.get_summary())
 
     # print_summary_to_file(get_summary, FILE_PATH, OUTPUT_DIR, IDENTIFIER)

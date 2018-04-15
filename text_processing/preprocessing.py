@@ -11,7 +11,7 @@ STOP_WORDS = set(stopwords.words('english'))
 
 
 def spacy_word_tokenize(text):
-    doc = clean_and_tokenize(text)
+    doc = clean_to_doc(text)
     words = []
     for token in doc:
         words.append(token.text)
@@ -19,11 +19,10 @@ def spacy_word_tokenize(text):
     return words
 
 
-def clean_and_tokenize(text):
+def clean_to_doc(text):
     """
     :param text: Original unprocessed text (as read directly from file)
-    :return: The same text, in the form of a list of tokens given by
-    spacy's tokenization
+    :return: The same text, in the form of doc from spacy's pipeline
     """
     text = clean_and_format(text)
     text_as_doc = NLP(text)

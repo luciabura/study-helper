@@ -1,0 +1,5 @@
+F1 lemmas:56.25107425714273 , Precision lemmas:53.84957375796009, Recall lemmas:64.80801115764056 
+    F1 w/o lemmas:42.32166109752967 , Precision w/o lemmas:52.15174791329042, Recall w/o lemmas:39.0376096138193 
+    F1 filtered:42.735204430547334 , Precision filtered:43.72790830503325, Recall filtered:46.67547050539302 
+    F1 established:33.35887754562204 , Precision established:61.01492372608473, Recall established:24.895198753996905
+

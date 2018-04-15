@@ -1,5 +1,6 @@
 import sys
 from evaluation.keywords_evaluation import keyword_score, keyphrase_score
+from evaluation.summary_evaluation import get_evaluation_scores
 
 EPSILON = sys.float_info.epsilon
 
@@ -61,3 +62,4 @@ def test_keyphrase_score_big_reference_keyphrase():
     assert abs(prec - expected_prec) < EPSILON
     assert abs(rec - expected_rec) < EPSILON
     assert abs(f_mes - expected_f1) < EPSILON
+

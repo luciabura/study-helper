@@ -2,21 +2,20 @@ import math
 from collections import OrderedDict
 
 from spacy.matcher import Matcher
-from spacy.tokens import Token
+from spacy.tokens import Token, doc
+from wordfreq import word_frequency
 
 import question_generation.sentence_simplifier as simplifier
-from keyword_extraction.keywords_filtered import get_keywords_with_scores
+# from evaluation.question_evaluation import spacy_perplexity
+from keyword_extraction.keywords_TR_lem import KeyPhrase, Keyword
 from neuralcoref import Coref
 from question_generation import *
 from summarization.sentence_provider import SentenceProvider, Sentence
-from summarization.summary import get_sentences_with_keywords_and_scores
+# from summarization.summary import get_sentences_with_keywords_and_scores
 from text_processing import preprocessing as preprocess
-from text_processing.grammar import has_pronouns, extract_noun_phrase, get_verb_phrase, is_past_tense, is_3rd_person, \
-    is_valid_subject, show_dependencies, is_vowel
+from text_processing.grammar import *
 from utilities import NLP
 from utilities.read_write import read_file
-
-from evaluation.question_evaluation import spacy_perplexity
 
 WHO_ENTS = ['PERSON', 'NORP']
 WHEN_ENTS = ['DATE']
@@ -30,7 +29,7 @@ MATCHER = Matcher(NLP.vocab)
 
 class Question:
     def __init__(self, question, sentence, answer):
-        self.content = question
+        self.content = NLP(question)
         # Assumes we get a sentence object of the form described by Sentence in sentence_provider
         self.sentence = sentence
         self.answer = answer
@@ -40,47 +39,127 @@ class Question:
         self.__compute_score()
 
     def __compute_score(self):
-        score = self.sentence.score
-        text_answer = self.answer.string.lower()
+        # Exclude questions which are referring expressions
+        # eg: What is he looking at?
+
+        for tok in self.content:
+            if (tok.tag_ == 'PRON' or tok.tag_ == 'PRP') or \
+                    (tok.tag_ == 'DT' and tok.dep_.startswith('nsubj')):
+                if tok.text in ['we', 'you']:
+                    continue
+                self.score = 0
+                return
+
+        # Calculating the score for keywords within Question
+        score_q = 0
+        div = 0
+        alpha = 0.955
 
         for kp in self.sentence.key_phrases:
+            if kp.text in self.content.text.lower():
+                div += 1
+                surprise_factor_normalized = sequence_surprize(kp.text)
+                score_q += alpha * kp.score + (1 - alpha) * surprise_factor_normalized
+        if div:
+            score_q = score_q / div
+
+        # Calculating the score for keywords within answer phrase
+        text_answer = [tok.lower_ for tok in self.answer]
+        text_answer = ' '.join(text_answer)
+
+        score_kp = 0
+        div = 0
+        for kp in self.sentence.key_phrases:
             if kp.text in text_answer:
-                div = math.log(len(self.sentence.key_phrases), 2)
-                if div == 0:
-                    div = 1
-                score += kp.score / div
+                div += 1
+                surprise_factor_normalized = sequence_surprize(kp.text)
+                score_kp += alpha * kp.score + (1 - alpha) * surprise_factor_normalized
+
+        if div:
+            score_kp = score_kp / div
+
+        beta = 0.2
+        if score_q and score_kp:
+            score = (1.0 + beta ** 2) * (score_q * score_kp) / (score_q + (beta ** 2) * score_kp)
+        elif score_q:
+            score = score_q
+        else:
+            score = score_kp * (1 - beta)
+
+        # if len(self.content) > 0:
+        #     score /= math.log(len(self.content))
 
         self.score = score
+
+    def similarity(self, question2):
+        if isinstance(question2, Question):
+            return self.content.similarity(question2.content)
+        elif isinstance(question2, str):
+            return self.content.similarity(NLP(question2))
+        elif isinstance(question2, doc):
+            return self.content.similarity(question2)
+        else:
+            return None
+
+
+def sequence_surprize(text):
+    word_list = text.split()
+    av_s = 0
+    for word in word_list:
+        wf = word_frequency(word, lang='en') * 1e8
+        if wf:
+            av_s += 1 / wf
+        else:
+            av_s += 0.1
+
+    if len(word_list) > 1:
+        av_s /= math.log(len(word_list))
+    return av_s
 
 
 def initialize_question_patterns():
     # This will match wrongly on is created, was made etc
-    attribute_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'attr'}]
-    attribute_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'attr'}]
+    attribute_1 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'attr'}]
+    acomp_1 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'acomp'}]
+    # attribute_1 = [{DEP: 'nsubj'}]
+    attribute_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'attr'}]
+    acomp_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'acomp'}]
 
-    direct_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'}]
-    direct_object_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'}]
+    ccomp_1 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'ccomp'}]
+    ccomp_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'ccomp'}]
 
-    prep_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'prep'},
-                     ANY_ALPHA, {DEP: 'pobj'}]
-    prep_object_2 = [{DEP: 'nsubjpass'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'prep'},
-                     ANY_ALPHA, {DEP: 'pobj'}]
+    direct_object_1 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dobj'}]
+    direct_object_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dobj'}]
 
-    d_obj_p_obj = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'},
-                   ANY_ALPHA, {DEP: 'pobj'}]
-    d_obj_p_obj_inv = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'pobj'},
-                       ANY_ALPHA, {DEP: 'dobj'}]
+    prep_object_1 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'prep'},
+                     ANY_TOKEN, {DEP: 'pobj'}]
+    prep_object_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'prep'},
+                     ANY_TOKEN, {DEP: 'pobj'}]
 
-    dative_object_1 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dative'},
-                       ANY_ALPHA, {DEP: 'dobj'}]
-    dative_object_2 = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'dobj'},
-                       ANY_ALPHA, {DEP: 'dative'}]
+    d_obj_p_obj = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dobj'},
+                   ANY_TOKEN, {DEP: 'pobj'}]
+    d_obj_p_obj_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dobj'},
+                     ANY_TOKEN, {DEP: 'pobj'}]
 
-    agent_1 = [{DEP: 'nsubj'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'agent'}, ANY_ALPHA, {DEP: 'pobj'}]
-    agent_2 = [{DEP: 'nsubjpass'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_ALPHA, {DEP: 'agent'}, ANY_ALPHA, {DEP: 'pobj'}]
+    d_obj_p_obj_inv = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'pobj'},
+                       ANY_TOKEN, {DEP: 'dobj'}]
+    d_obj_p_obj_inv_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'pobj'},
+                         ANY_TOKEN, {DEP: 'dobj'}]
+    dative_pobj = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dative'},
+                   ANY_TOKEN, {DEP: 'pobj'}]
+
+    dative_object_1 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dative'},
+                       ANY_TOKEN, {DEP: 'dobj'}]
+    dative_object_2 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dobj'},
+                       ANY_TOKEN, {DEP: 'dative'}]
+
+    agent_1 = [{DEP: 'nsubj'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'agent'}, ANY_TOKEN, {DEP: 'pobj'}]
+    agent_2 = [{DEP: 'nsubjpass'}, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'agent'}, ANY_TOKEN, {DEP: 'pobj'}]
 
     MATCHER.add("ATTR", None, attribute_1)
     MATCHER.add("ATTR", None, attribute_2)
+    MATCHER.add("ATTR", None, acomp_1)
+    MATCHER.add("ATTR", None, acomp_2)
     MATCHER.add("DOBJ", None, direct_object_1)
     MATCHER.add("DOBJ", None, direct_object_2)
     MATCHER.add("POBJ", None, prep_object_1)
@@ -88,7 +167,12 @@ def initialize_question_patterns():
     MATCHER.add("AGENT", None, agent_1)
     MATCHER.add("AGENT", None, agent_2)
     MATCHER.add("DOBJ-POBJ", None, d_obj_p_obj)
+    MATCHER.add("DOBJ-POBJ", None, d_obj_p_obj_2)
     MATCHER.add("DOBJ-POBJ", None, d_obj_p_obj_inv)
+    MATCHER.add("DOBJ-POBJ", None, d_obj_p_obj_inv_2)
+    MATCHER.add("DOBJ-POBJ", None, dative_pobj)
+    MATCHER.add("CCOMP", None, ccomp_1)
+    MATCHER.add("CCOMP", None, ccomp_2)
 
 
 def choose_wh_word(span):
@@ -104,6 +188,8 @@ def choose_wh_word(span):
         return 'How much'
 
     # Choose 'who'
+    # Not good: could have tokens there but need to be immediatelly related to verb...
+    # Amelia took a present to Joanna. What did Amelia take to Joanna?
     if any(tok.ent_type_ in WHO_ENTS for tok in span) or has_pronouns(span):
         return 'Who'
 
@@ -159,7 +245,7 @@ def get_verb_form(verb, includes_subject=False):
         verb_components.append(correct_short_verb_form(verb))
 
     elif is_past_tense(verb):
-        if includes_subject and verb.lower_ != 'was':
+        if includes_subject and verb.lower_ not in ['was', 'were']:
             # Who did Harry meet? from Harry met Sally.
             verb_components.append('did')
             verb_components.append(verb.lemma_)
@@ -242,6 +328,9 @@ def prepare_question_verb(vp, includes_subject):
 
             return q_verb
 
+        elif is_past_tense(vp[0]):
+            verb = get_verb_form(vp[0], includes_subject)
+            q_verb = verb
         else:
             q_verb.append(correct_short_verb_form(vp[0]))
 
@@ -295,8 +384,8 @@ def generate_prepositional_questions(match):
             question.append(format_phrase(subject_phrase))
             question.extend(verb_form_with_subject[1:])
 
-        # if wh_word_pobject == 'What':
-        question.append(preposition.text)
+        if wh_word_pobject != 'When':
+            question.append(preposition.text)
 
         question = ' '.join(question)
 
@@ -307,7 +396,8 @@ def generate_prepositional_questions(match):
     question.extend(verb_form_with_pobject)
     question.append(format_phrase(pobject_phrase))
 
-    question = ' '.join(question)
+    # question = ' '.join(question)
+    question = safe_join(question)
     question += '?'
     questions.append((question, subject_phrase))
 
@@ -353,7 +443,8 @@ def generate_agent_questions(match):
     question.extend(verb_form_with_pobject)
     question.append(format_phrase(pobject_phrase))
 
-    question = ' '.join(question)
+    # question = ' '.join(question)
+    question = safe_join(question)
     question += '?'
     questions.append((question, subject_phrase))
 
@@ -365,7 +456,11 @@ def generate_attribute_questions(match):
     questions = []
     sentence = match.sentence
     subject = match.get_first_token()
+    attribute = match.get_last_token()
     verb = subject.head
+
+    if attribute.head != verb:
+        return []
 
     subject_phrase = extract_noun_phrase(subject, sentence)
     attribute_phrase = extract_noun_phrase(match.get_last_token(), sentence)
@@ -398,7 +493,8 @@ def generate_attribute_questions(match):
     question.extend(verb_form_with_attribute)
     question.append(format_phrase(attribute_phrase))
 
-    question = ' '.join(question)
+    # question = ' '.join(question)
+    question = safe_join(question)
     question += '?'
     questions.append((question, subject_phrase))
 
@@ -428,10 +524,10 @@ def generate_dobj_questions(match):
 
     if is_valid_subject(subject_phrase):
         questions.append(('Describe the relation or interaction between '
-                         + format_phrase(subject_phrase)
-                         + ' and '
-                         + format_phrase(direct_object_phrase)
-                         + '.', verb_phrase))
+                          + format_phrase(subject_phrase)
+                          + ' and '
+                          + format_phrase(direct_object_phrase)
+                          + '.', verb_phrase))
         question = [wh_word_object]
 
         if len(verb_form_with_subject) == 1:
@@ -452,31 +548,34 @@ def generate_dobj_questions(match):
     question.extend(verb_form_with_object)
     question.append(format_phrase(direct_object_phrase))
 
-    question = ' '.join(question)
+    # question = ' '.join(question)
+    question = safe_join(question)
     question += '?'
     questions.append((question, subject_phrase))
 
     return questions
 
 
-def generate_questions(text):
-    # The protocol for getting sentences with corresponding scores and keywords
-    text_as_doc = preprocess.clean_and_tokenize(text)
-    keywords_with_scores = get_keywords_with_scores(text_as_doc)
-    sentences = preprocess.sentence_tokenize(text)
-    sentences_with_keywords_and_scores = get_sentences_with_keywords_and_scores(sentences, keywords_with_scores)
-
-    sorted_sentences = list(sort_scores(sentences_with_keywords_and_scores))
-    i = 0
-    for sentence in sorted_sentences:
-        # for token in sentence:
-        # print(token.text, token.dep_)
-        # showTree(sentence)
-        print(sentence[0:2], i)
-        i += 1
-        # print(sentences_with_keywords_and_scores[sentence][1])
-        # break
-
+#
+# def generate_questions(text):
+#
+#     # The protocol for getting sentences with corresponding scores and keywords
+#     text_as_doc = preprocess.clean_to_doc(text)
+#     keywords_with_scores = get_keywords_with_scores(text_as_doc)
+#     sentences = preprocess.sentence_tokenize(text)
+#     sentences_with_keywords_and_scores = get_sentences_with_keywords_and_scores(sentences, keywords_with_scores)
+#
+#     sorted_sentences = list(sort_scores(sentences_with_keywords_and_scores))
+#     i = 0
+#     for sentence in sorted_sentences:
+#         # for token in sentence:
+#         # print(token.text, token.dep_)
+#         # showTree(sentence)
+#         print(sentence[0:2], i)
+#         i += 1
+#         # print(sentences_with_keywords_and_scores[sentence][1])
+#         # break
+#
 
 def get_coreference(pronoun):
     """Implement if time -> pronoun get document coreference with neuralcoref"""
@@ -530,8 +629,14 @@ def trial_sentences():
 
     text = NLP(u"Mark's fingerprints were found after the investigation.")
     text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
+    text = NLP(
+        u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
+    text = NLP(u'This text is one of the most famous ones in history.')
+    text = NLP(u'Darwin studied how species evolve.')
+    text = NLP(u'How does this happen?.')
+    # text = NLP(u'It is concluded that that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
 
-    show_dependencies(text, port=5000)
+    show_dependencies(text, port=5002)
     # for nc in text.noun_chunks:
     #     print(nc)
 
@@ -543,13 +648,19 @@ def generate_dobj_pobj_question(match):
     root_verb = subject.head
 
     preposition = match.get_token_by_attributes(dependency='prep', head=root_verb)
+    preposition_2 = match.get_token_by_attributes(dependency='dative', head=root_verb)
     pobject = match.get_token_by_attributes(dependency='pobj', head=preposition)
     dobject = match.get_token_by_attributes(dependency='dobj', head=root_verb)
 
     if pobject is None \
-            or dobject is None \
-            or preposition is None:
+            or dobject is None:
         return []
+
+    if preposition is None:
+        if preposition_2 is None:
+            return []
+        else:
+            preposition = preposition_2
 
     subject_phrase = extract_noun_phrase(subject, match.sentence)
     wh_word_subject = choose_wh_word(subject_phrase)
@@ -594,7 +705,8 @@ def generate_dobj_pobj_question(match):
 
         question.append(preposition.text)
         question.append(format_phrase(pobject_phrase))
-        question = ' '.join(question)
+        # question = ' '.join(question)
+        question = safe_join(question)
         question += '?'
         questions.append((question, dobject_phrase))
 
@@ -609,7 +721,8 @@ def generate_dobj_pobj_question(match):
         question.append(format_phrase(pobject_phrase))
         question.append(format_phrase(dobject_phrase))
 
-    question = ' '.join(question)
+    # question = ' '.join(question)
+    question = safe_join(question)
     question += '?'
     questions.append((question, subject_phrase))
 
@@ -631,39 +744,95 @@ def generate_q():
     # text = NLP(u'The ecclesiastical parish of Navenby was originally placed in the Longoboby Rural Deanery.')
     # text = NLP(u'A router helps with packet forwarding.')
     # text = NLP(u'The handle should be attached before the mantle.')
-    text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
+    # text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
     # text = NLP(u"The general took his soldiers to the hiding place.")
     text = NLP(u"Apple’s first logo, designed by Jobs and Wayne, depicts Sir Isaac Newton sitting under an apple tree.")
+    text = NLP(u"John gave a present to Joanna.")
+    text = NLP(u'Darwin studied how species evolve.')
+    text = NLP(
+        u'During the Gold Rush years in northern California, Los Angeles became known as the "Queen of the Cow Counties" for its role in supplying beef and other foodstuffs to hungry miners in the north.')
+    text = NLP(
+        u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
+    # text = NLP(u'Almost immediately, though, this was replaced by Rob Janoff’s “rainbow Apple”, the now-familiar rainbow-colored silhouette of an apple with a bite taken out of it.')
+
+    # text = NLP(u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
+    # text = NLP(u"The game was played on February 7, 2016, at Levi's Stadium in the San Francisco Bay Area at Santa Clara, California.")
     # text = NLP(u"An Apple fell on Newton's head.")
     # text = NLP(u"Mario Kart is the most annoying game to be played.")
     # text = NLP(u"Software that is usable for its purpose is sometimes described by programmers as “intuitive” (easy to learn, easy to remember, easy to apply to new problems) or “powerful” (efficient, effective)")
     # text = NLP(u"This course attempts, so far as possible within 8 lectures, to discuss the important aspects of fields including: Interaction Design, User Experience Design (UX), Interactive Systems Design, Information Visualisation, Cognitive Ergonomics, Man-Machine Interface (MMI), User Interface Design (UI), Human Factors, Cognitive Task Design, Information Architecture (IA), Software Product Design, Usability Engineering, User-Centred Design (UCD) and Computer Supported Collaborative Work (CSCW).")
-    # text = NLP(u"This course attempts, so far as possible within 8 lectures, to discuss the important aspects of fields including: Interaction Design, User Experience Design (UX), Interactive Systems Design.")
+    # text = NLP(u"Almost immediately, though, this was replaced by Rob Janoff’s “rainbow Apple”, the now-familiar rainbow-colored silhouette of an apple with a bite taken out of it.")
 
-    setence_object_mock = Sentence(text, 1)
-    generate_questions_trial(trial_sentence=setence_object_mock)
+    # show_dependencies(text)
+    sentence_object_mock = Sentence(text, 1)
+    kw1 = Keyword(sentence_object_mock.as_doc[9], score=0.2, sentence=sentence_object_mock.as_doc)
+    kw2 = Keyword(sentence_object_mock.as_doc[10], score=0.1, sentence=sentence_object_mock.as_doc)
+    sentence_object_mock.add(kw1)
+    sentence_object_mock.add(kw1)
+    sentence_object_mock.add(
+        KeyPhrase(start_index=9, end_index=10, sentence=sentence_object_mock.as_doc, keywords=[kw1, kw2]))
+    generate_questions_trial(trial_sentence=sentence_object_mock, simplify=True, debug=True)
 
 
-def generate_questions_trial(trial_sentence=None):
+def generate_questions(sentence=None, text=None, trim=True, simplify=False):
+    # TODO: normal per sentence, option of including rest of pipeline or not for evaluation
+    if sentence and text:
+        print("Please only choose one form of input")
+        return
 
+    if sentence:
+        if isinstance(sentence, Sentence):
+            sentences = [sentence]
+        elif isinstance(sentence, str):
+            sent_as_doc = NLP(sentence)
+            sentences = [SentenceProvider(sent_as_doc)]
+        elif isinstance(sentence, doc):
+            sentences = [SentenceProvider(sentence)]
+        else:
+            print("Error parsing the input")
+            return
+    elif text:
+        document = preprocess.clean_to_doc(text)
+        sentence_provider = SentenceProvider(document)
+        sentences = sentence_provider.get_top_sentences(trim=trim)
+
+    else:
+        print("No input provided")
+        return
+
+    # Start the Matcher
+    initialize_question_patterns()
+    all_questions = set([])
+    seen_questions = set([])
+    sentences_with_questions = {}
+
+    for sentence in sentences:
+        if simplify:
+            sentences = simplifier.simplify_sentence(sentence.text)
+
+
+def generate_questions_trial(trial_sentence=None, text=None, simplify=False, debug=False):
     if trial_sentence:
         top_sentences = [trial_sentence]
 
     else:
-        text = read_file(input('Filepath: '))
-        document = preprocess.clean_and_tokenize(text)
+        if text is None:
+            text = read_file(input('Filepath: '))
+
+        document = preprocess.clean_to_doc(text)
 
         sentence_provider = SentenceProvider(document)
 
-        resolved_text = resolve_coreferences(document.text)
-        resolved_sentences = [s for s in preprocess.sentence_tokenize(resolved_text[0])]
+        # resolved_text = resolve_coreferences(document.text)
+        # resolved_sentences = [s for s in preprocess.sentence_tokenize(resolved_text[0])]
 
-        replace_coreferences(resolved_sentences, sentence_provider.sentence_objects)
+        # replace_coreferences(resolved_sentences, sentence_provider.sentence_objects)
 
         top_sentences = sentence_provider.get_top_sentences(trim=False)
+        # top_sentences = sentence_provider.get_top_sentences(trim=True)
 
-        for sent in top_sentences:
-            print(sent.as_doc)
+        # for sent in top_sentences:
+        #     print(sent.as_doc)
 
         trial_sents = [top_sentences[0]]
         # text = clean_and_format(text)
@@ -676,21 +845,23 @@ def generate_questions_trial(trial_sentence=None):
     seen_questions = set([])
 
     for sentence in top_sentences:
-        simplified_sentences = simplifier.simplify_sentence(sentence.text)
+        if simplify:
+            sentences = simplifier.simplify_sentence(sentence.text)
+        else:
+            sentences = [sentence.as_doc]
 
-        print("\nOriginal sentence:\n")
-        print(sentence.text)
+        # print("\nOriginal sentence:\n")
+        # print(sentence.text)
 
-        print("\nSimplified sentences:\n")
+        # print("\nSimplified sentences:\n")
 
-        for s in simplified_sentences:
-            print(s)
+        for s in sentences:
+
             matches = MATCHER(s)
+
             for ent_id, start, end in matches:
                 match = Match(ent_id, start, end, s)
                 pattern_name = NLP.vocab.strings[ent_id]
-
-                # print(pattern_name)
 
                 questions = handle_match(pattern_name)(match)
                 if questions:
@@ -701,22 +872,36 @@ def generate_questions_trial(trial_sentence=None):
                             q_object = Question(question, sentence, answer)
                             all_questions.add(q_object)
 
-    print("\nQuestions: \n")
+    # print("\nQuestions: \n")
 
     sorted_questions = sort_by_score(all_questions, descending=True)
 
-    for question in sorted_questions:
-        perplexity = spacy_perplexity(question.content)
-        print("Q: {}\nPerplexity: {}\n".format(question.content, perplexity))
+    if debug:
+        for question in sorted_questions:
+            # perplexity = spacy_perplexity(doc=question.content)
+            print("Q: {}, score: {}".format(question.content, question.score))
+            # print("Perplexity: {}\n".format(perplexity))
+
+    # for question in sorted_questions:
+    #     for q2 in sorted_questions:
+    #         if question is not q2:
+    #             print("Q1: {}\nQ2: {}\nSimilarity:{}".format(question.content, q2.content, question.similarity(q2)))
+
+    return sorted_questions
 
 
 # Switch statement, sort of
+def generare_ccomp_question(match):
+    return []
+
+
 pattern_to_question = {
     "ATTR": lambda match: generate_attribute_questions(match),
     "POBJ": lambda match: generate_prepositional_questions(match),
     "DOBJ": lambda match: generate_dobj_questions(match),
     "AGENT": lambda match: generate_agent_questions(match),
-    "DOBJ-POBJ": lambda match: generate_dobj_pobj_question(match)
+    "DOBJ-POBJ": lambda match: generate_dobj_pobj_question(match),
+    "CCOMP": lambda match: generare_ccomp_question(match)
     # TODO: add more patterns
 }
 
@@ -736,7 +921,7 @@ def resolve_coreferences(text):
 
     resolved_utterance_text = coref.get_resolved_utterances()
 
-    print(resolved_utterance_text)
+    # print(resolved_utterance_text)
 
     return resolved_utterance_text
 
@@ -748,10 +933,6 @@ def replace_coreferences(resolved_sentences, original_sentence_objects):
 
 
 if __name__ == '__main__':
-    # generate_questions(TEST_TEXT)
-    # doc = NLP(u'Computer Science is the study of both practical and theoretical approaches to computers. A computer scientist specializes in the theory of computation.')
-    # sentences = list(doc.sents)
-    # show_dependencies(sentences[1].as_doc(), port=5001)
-    # generate_q()
+    generate_q()
     # trial_sentences()
-    generate_questions_trial()
+    # generate_questions_trial(simplify=False)

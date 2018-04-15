@@ -12,26 +12,36 @@ def has_pronouns(span):
 
 
 def extract_noun_phrase(token, sentence, exclude_span=None, include_span=None, discard_punct=None):
-    start_index = INFINITY
-    end_index = -1
+    # start_index = INFINITY
+    # end_index = -1
 
-    for child in token.subtree:
-        """This will fail in some cases, might want to try to just get full subtree, but then need to pay attention 
-        what we call it on. For now, I'm going to call it only on subjects and object so should be OK to get subtree"""
-        if exclude_span and child in exclude_span:
-            continue
-        if include_span and child not in include_span:
-            continue
-        elif discard_punct and child.text in discard_punct:
-            continue
+    # for child in token.subtree:
+    #     """This will fail in some cases, might want to try to just get full subtree, but then need to pay attention
+    #     what we call it on. For now, I'm going to call it only on subjects and object so should be OK to get subtree"""
+    #     # if exclude_span and child in exclude_span:
+    #     #     continue
+    #     if include_span and child not in include_span:
+    #         continue
+    #     elif discard_punct and child.text in discard_punct:
+    #         continue
+    #
+    #     if start_index > child.i:
+    #         start_index = child.i
+    #
+    #     if end_index < child.i:
+    #         end_index = child.i
 
-        if start_index > child.i:
-            start_index = child.i
+    subtree_span = get_subtree_span(token, sentence)
 
-        if end_index < child.i:
-            end_index = child.i
+    np_tokens = [tok for tok in subtree_span]
 
-    return sentence[start_index: (end_index + 1)]
+    if exclude_span:
+        np_tokens = list(filter(lambda x: x not in exclude_span, np_tokens))
+
+    if discard_punct:
+        np_tokens = list(filter(lambda x: x.text not in discard_punct, np_tokens))
+
+    return np_tokens
 
 
 def get_verb_phrase(token, sentence):
@@ -41,6 +51,7 @@ def get_verb_phrase(token, sentence):
     for child in token.subtree:
         if (child.dep_.startswith("aux") and child.head == token) \
                 or (child.dep_ == 'neg' and child.head == token) \
+                or (child.dep_ == 'prt' and child.head == token) \
                 or child == token:
             if start_index > child.i:
                 start_index = child.i
@@ -53,12 +64,14 @@ def get_verb_phrase(token, sentence):
 
 def is_valid_sentence(sentence):
     """
-    TODO: Implement
     :param sentence:
     :return:
     """
     # This assumes sentence is passes as doc
     sent_span = sentence[0:]
+
+    if len(sent_span) == 0:
+        return False
 
     if sent_span.root.pos_ != "VERB":
         return False
@@ -88,6 +101,18 @@ def is_valid_subject(subject):
         return False
 
     return True
+
+
+def safe_join(sentence_components):
+    to_replace = [" ,", " .", " - ", " '", " ;", " :", " !", " ?"]
+    safe = ' '.join(sentence_components)
+
+    for tok in to_replace:
+        if tok in safe:
+            new_tok = tok.replace(' ', '')
+            safe = safe.replace(tok, new_tok)
+
+    return safe
 
 
 def show_dependencies(sentence, port=5000):
@@ -155,3 +180,9 @@ def get_subtree_span(token, sentence):
             end_index = child.i
 
     return sentence[start_index: (end_index + 1)]
+
+
+def spacy_similarity(text1, text2):
+    doc1 = NLP(text1)
+    doc2 = NLP(text2)
+    return doc1.similarity(doc2)

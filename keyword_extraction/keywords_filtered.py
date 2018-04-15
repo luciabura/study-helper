@@ -119,7 +119,7 @@ def get_keyphrases_with_scores(tokens):
 
 
 def get_keywords(text, keyword_count=10, customize_count=False, trim=True, filter=False):
-    tokens = preprocess.clean_and_tokenize(text)
+    tokens = preprocess.clean_to_doc(text)
     keyphrases_with_scores = get_keyphrases_with_scores(tokens)
 
     if customize_count is False:

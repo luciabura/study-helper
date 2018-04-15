@@ -20,20 +20,12 @@ IDENTIFIER = '_A'
 WINDOW_SIZE = 2
 
 
-def get_top_sentences(sentences):
-    pass
-
-
 def get_sentences_with_keywords_and_scores(sentences, keywords_with_scores):
     keywords = list(keywords_with_scores.keys())
 
     graph = build_graph(sentences)
     add_graph_edges(graph, sentences)
     pagerank_scores = nx.pagerank(graph)
-
-    print(keywords)
-
-    print("Sentence count: " + str(len(sentences)))
 
     sentences_with_keywords_and_scores = {}
     for sentence in sentences:
@@ -51,7 +43,7 @@ def sort_scores(scores):
 
 
 def get_summary(text, sentence_num=None):
-    tokens = preprocess.clean_and_tokenize(text)
+    tokens = preprocess.clean_to_doc(text)
     keywords_with_scores = get_keywords_with_scores(tokens)
     sentences = preprocess.sentence_tokenize(text)
     sentences_with_keywords_and_scores = get_sentences_with_keywords_and_scores(sentences, keywords_with_scores)
@@ -64,7 +56,7 @@ def get_summary(text, sentence_num=None):
     summary = []
     for sentence in sentences:
         if sentence in sorted_sentences[0:sentence_num]:
-            summary.append(sentence.string.strip())
+            summary.append(sentence.text.strip())
 
     summary = '\n'.join(summary)
     return summary
@@ -77,8 +69,8 @@ def get_spacy_similarity(sentence_1, sentence_2):
 def get_similarity(sentence_1, sentence_2):
     # Potentially better similarity score?
     common = 0
-    s1_words = [token.text for token in preprocess.clean_and_tokenize(sentence_1)]
-    s2_words = [token.text for token in preprocess.clean_and_tokenize(sentence_2)]
+    s1_words = [token.text for token in preprocess.clean_to_doc(sentence_1)]
+    s2_words = [token.text for token in preprocess.clean_to_doc(sentence_2)]
     for word in s1_words:
         if word in s2_words:
             common += 1
@@ -139,4 +131,3 @@ if __name__ == '__main__':
     OUTPUT_DIR = input('Directory to put summary in: \n')
     FILE_TEXT = read_file(FILE_PATH)
     print(get_summary(FILE_TEXT))
-    # print_summary_to_file(get_summary, FILE_PATH, OUTPUT_DIR, IDENTIFIER)
