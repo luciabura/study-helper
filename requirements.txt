@@ -8,3 +8,4 @@ pytest
 spacy
 gensim
 wordfreq
+sumy
