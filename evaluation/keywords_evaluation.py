@@ -286,51 +286,61 @@ def aggregate_results():
 
 
 if __name__ == '__main__':
-    aggregate_results()
-    # FILE_PATH = input('Enter a file path to get keywords for: ')
-    # REFERENCE_PATH = input('Enter a file path for reference keywords: ')
+    # aggregate_results()
+
+    FILE_PATH = input('Enter a file path to get keywords for: ')
+    REFERENCE_PATH = input('Enter a file path for reference keywords: ')
+
+    FILE_TEXT = read_file(FILE_PATH)
+    document = preprocessing.clean_to_doc(FILE_TEXT)
+    keyword_provider = KeywordProvider(document)
+
+    REFERENCE_TEXT = read_file(REFERENCE_PATH)
+    REFERENCE_KEYWORDS = get_reference_keywords(REFERENCE_TEXT)
+    REFERENCE_NGRAMS = get_reference_ngrams(REFERENCE_TEXT)
     #
-    # FILE_TEXT = read_file(FILE_PATH)
-    # document = preprocessing.clean_and_tokenize(FILE_TEXT)
-    # keyword_provider = KeywordProvider(document)
-    #
-    # REFERENCE_TEXT = read_file(REFERENCE_PATH)
-    # REFERENCE_KEYWORDS = get_reference_keywords(REFERENCE_TEXT)
-    # REFERENCE_NGRAMS = get_reference_ngrams(REFERENCE_TEXT)
-    #
-    # # Get keyphrases from each implementation
+    # Get keyphrases from each implementation
     # graph_keyphrases = get_graph_keywords(FILE_TEXT)
-    # keyphrases_TR = get_graph_keywords_2(FILE_TEXT)
-    # keyphrases_TR_lem = keyword_provider.show_key_phrases(trim=True)
-    #
-    # keyphrases_filtered = get_graph_keywords_4(FILE_TEXT, filter=True)
+    keyphrases_TR = get_graph_keywords_2(FILE_TEXT)
+    keyphrases_TR_lem = keyword_provider.show_key_phrases(trim=True)
+    # print("My system: {}".format(keyphrases_TR_lem))
+
+
+    keyphrases_filtered = get_graph_keywords_4(FILE_TEXT, filter=True)
     #
     # # Get the baselines keywords
     # baseline_keywords = get_baseline_keywords(FILE_TEXT, len(REFERENCE_KEYWORDS))
-    # established_keyphrases = gensim_keywords(FILE_TEXT).split('\n')
-    #
+    established_keyphrases = gensim_keywords(FILE_TEXT).split('\n')
+    # print("Gensim: {}".format(established_keyphrases))
+
     # # Print out the scores
-    # print('\nMy TR implementation with lemmas:')
-    # keywords = list(set(' '.join(keyphrases_TR_lem).split()))
-    # print(keyphrases_TR_lem)
-    # print(('Per-word: \n' + str(keyword_score(keywords, REFERENCE_KEYWORDS))))
-    # print(('Per-keyphrase: \n' + str(keyphrase_score(keyphrases_TR_lem, REFERENCE_NGRAMS))))
+    print('\nMy TR implementation with lemmas:')
+    keywords = list(set(' '.join(keyphrases_TR_lem).split()))
+    print(keyphrases_TR_lem)
+    print(('Per-word: \n' + str(keyword_score(keywords, REFERENCE_KEYWORDS))))
+    print(('Per-word: \n' + str(keyword_score(keyphrases_TR_lem, REFERENCE_NGRAMS))))
+    print(('Per-keyphrase: \n' + str(keyphrase_score(keyphrases_TR_lem, REFERENCE_NGRAMS))))
     #
-    # print('\nMy TR implementation w/o lemmas:')
-    # keywords = list(set(' '.join(keyphrases_TR).split()))
-    # print(('Per-word: \n' + str(keyword_score(keywords, REFERENCE_KEYWORDS))))
-    # print(('Per-keyphrase: \n' + str(keyphrase_score(keyphrases_TR, REFERENCE_NGRAMS))))
+    print('\nMy TR implementation w/o lemmas:')
+    print("TR: {}".format(keyphrases_TR))
+    keywords = list(set(' '.join(keyphrases_TR).split()))
+    print(('Per-word: \n' + str(keyword_score(keywords, REFERENCE_KEYWORDS))))
+    print(('Per-word: \n' + str(keyword_score(keyphrases_TR, REFERENCE_NGRAMS))))
+    print(('Per-keyphrase: \n' + str(keyphrase_score(keyphrases_TR, REFERENCE_NGRAMS))))
     #
-    # print('\nMy TR implementation w/o lemmas AND filtered:')
-    # keywords = list(set(' '.join(keyphrases_filtered).split()))
-    # print(('Per-word: \n' + str(keyword_score(keywords, REFERENCE_KEYWORDS))))
-    # print(('Per-keyphrase: \n' + str(keyphrase_score(keyphrases_filtered, REFERENCE_NGRAMS))))
+    print('\nMy TR implementation w/o lemmas AND filtered:')
+    print("TR: {}".format(keyphrases_filtered))
+    keywords = list(set(' '.join(keyphrases_filtered).split()))
+    print(('Per-word: \n' + str(keyword_score(keywords, REFERENCE_KEYWORDS))))
+    print(('Per-word: \n' + str(keyword_score(keyphrases_filtered, REFERENCE_NGRAMS))))
+    print(('Per-keyphrase: \n' + str(keyphrase_score(keyphrases_filtered, REFERENCE_NGRAMS))))
     #
-    # print('\nEstablished implementation:')
-    # keywords = list(set((' '.join(established_keyphrases)).split()))
-    # print(established_keyphrases)
-    # print('Per-word: \n' + str(keyword_score(keywords, REFERENCE_KEYWORDS)))
-    # print('Per-keyphrase: \n' + str(keyphrase_score(established_keyphrases, REFERENCE_NGRAMS)))
+    print('\nEstablished implementation:')
+    keywords = list(set((' '.join(established_keyphrases)).split()))
+    print(established_keyphrases)
+    print('Per-word: \n' + str(keyword_score(keywords, REFERENCE_KEYWORDS)))
+    print('Per-word: \n' + str(keyword_score(established_keyphrases, REFERENCE_NGRAMS)))
+    print('Per-keyphrase: \n' + str(keyphrase_score(established_keyphrases, REFERENCE_NGRAMS)))
     #
     # print('\nBaseline implementation:')
     # print((keyword_score(baseline_keywords, REFERENCE_KEYWORDS)))
