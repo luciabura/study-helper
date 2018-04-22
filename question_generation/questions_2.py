@@ -17,7 +17,7 @@ from text_processing.grammar import *
 from utilities import NLP
 from utilities.read_write import read_file
 
-WHO_ENTS = ['PERSON', 'NORP']
+WHO_ENTS = ['PERSON']
 WHEN_ENTS = ['DATE']
 WHERE_ENTS = ['LOCATION', 'FACILITY', 'ORG', 'LOC', 'GPE']
 HOW_MUCH_ENTS = ['MONEY', 'PERCENT']
@@ -91,7 +91,7 @@ class Question:
 
         self.score = score
 
-    def similarity(self, question2):
+    def get_similarity(self, question2):
         if isinstance(question2, Question):
             return self.content.similarity(question2.content)
         elif isinstance(question2, str):
@@ -129,6 +129,7 @@ def initialize_question_patterns():
     ccomp_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'ccomp'}]
 
     direct_object_1 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dobj'}]
+    direct_object_d = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, {DEP: 'dobj'}]
     direct_object_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'dobj'}]
 
     prep_object_1 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN, {DEP: 'prep'},
@@ -161,6 +162,7 @@ def initialize_question_patterns():
     MATCHER.add("ATTR", None, acomp_1)
     MATCHER.add("ATTR", None, acomp_2)
     MATCHER.add("DOBJ", None, direct_object_1)
+    MATCHER.add("DOBJ", None, direct_object_d)
     MATCHER.add("DOBJ", None, direct_object_2)
     MATCHER.add("POBJ", None, prep_object_1)
     MATCHER.add("POBJ", None, prep_object_2)
@@ -634,6 +636,9 @@ def trial_sentences():
     text = NLP(u'This text is one of the most famous ones in history.')
     text = NLP(u'Darwin studied how species evolve.')
     text = NLP(u'How does this happen?.')
+    text = NLP(u'John went to the University of Cambridge.')
+    text = NLP(u'You can substitute flour with self rising flour.')
+    text = NLP(u'One subtopic in NLG which has been extensively investigated is generation of referring expressions: given some information about an entity, how do we choose to refer to it?')
     # text = NLP(u'It is concluded that that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
 
     show_dependencies(text, port=5002)
@@ -764,51 +769,52 @@ def generate_q():
     # text = NLP(u"Almost immediately, though, this was replaced by Rob Janoff’s “rainbow Apple”, the now-familiar rainbow-colored silhouette of an apple with a bite taken out of it.")
 
     # show_dependencies(text)
+
+    text = NLP(u'You can substitute flour with self rising flour.')
+    text = NLP(u'DoTERRA Cheer Uplifting Blend of citrus and spice essential oils provides a cheerful boost of happiness and positivity when you are feeling down, its sunshiny, fresh, optimistic aroma will brighten any moment of your day.')
+
     sentence_object_mock = Sentence(text, 1)
-    kw1 = Keyword(sentence_object_mock.as_doc[9], score=0.2, sentence=sentence_object_mock.as_doc)
-    kw2 = Keyword(sentence_object_mock.as_doc[10], score=0.1, sentence=sentence_object_mock.as_doc)
-    sentence_object_mock.add(kw1)
-    sentence_object_mock.add(kw1)
-    sentence_object_mock.add(
-        KeyPhrase(start_index=9, end_index=10, sentence=sentence_object_mock.as_doc, keywords=[kw1, kw2]))
+    # kw1 = Keyword(sentence_object_mock.as_doc[9], score=0.2, sentence=sentence_object_mock.as_doc)
+    # kw2 = Keyword(sentence_object_mock.as_doc[10], score=0.1, sentence=sentence_object_mock.as_doc)
+    # sentence_object_mock.add_key(kw1)
+    # sentence_object_mock.add_key(kw1)
+    # sentence_object_mock.add_key(
+    #     KeyPhrase(start_index=9, end_index=10, sentence=sentence_object_mock.as_doc, keywords=[kw1, kw2]))
     generate_questions_trial(trial_sentence=sentence_object_mock, simplify=True, debug=True)
+    generate_questions_trial(text=text.text, simplify=False, debug=True)
 
 
-def generate_questions(sentence=None, text=None, trim=True, simplify=False):
-    # TODO: normal per sentence, option of including rest of pipeline or not for evaluation
-    if sentence and text:
-        print("Please only choose one form of input")
-        return
+def score_and_filter(questions, descending=True):
+    """
+    Expects a set of question objects, all assigned to the same sentence
+    Will return a descending list of questions, preferably not similar
+    :param questions:
+    :param descending:
+    :return:
+    """
+    similarity_threshold = 0.92
+    sorted_questions = sort_by_score(questions, descending=descending)
+    questions = set([])
+    while sorted_questions:
+        current = sorted_questions.pop()
+        questions.add(current)
 
-    if sentence:
-        if isinstance(sentence, Sentence):
-            sentences = [sentence]
-        elif isinstance(sentence, str):
-            sent_as_doc = NLP(sentence)
-            sentences = [SentenceProvider(sent_as_doc)]
-        elif isinstance(sentence, doc):
-            sentences = [SentenceProvider(sentence)]
-        else:
-            print("Error parsing the input")
-            return
-    elif text:
-        document = preprocess.clean_to_doc(text)
-        sentence_provider = SentenceProvider(document)
-        sentences = sentence_provider.get_top_sentences(trim=trim)
+        new_sorted_questions = set([])
 
-    else:
-        print("No input provided")
-        return
+        for q in sorted_questions:
+            if current.content.similarity(q.content) < similarity_threshold:
+                new_sorted_questions.add(q)
 
-    # Start the Matcher
-    initialize_question_patterns()
-    all_questions = set([])
-    seen_questions = set([])
-    sentences_with_questions = {}
+        sorted_questions = new_sorted_questions
 
-    for sentence in sentences:
-        if simplify:
-            sentences = simplifier.simplify_sentence(sentence.text)
+    return questions
+
+
+def print_sentences_with_questions(sentences_with_questions):
+    for sent in sentences_with_questions.keys():
+        print("Sentence:{}".format(sent.text))
+        for question in sentences_with_questions[sent]:
+            print("Questions:{}\n".format(question.content))
 
 
 def generate_questions_trial(trial_sentence=None, text=None, simplify=False, debug=False):
@@ -932,7 +938,74 @@ def replace_coreferences(resolved_sentences, original_sentence_objects):
             original_sentence_objects[i].text = sentence.text
 
 
+def generate_questions(sentence=None, text=None, trim=True, simplify=False):
+    # TODO: normal per sentence, option of including rest of pipeline or not for evaluation
+    if sentence and text:
+        print("Please only choose one form of input")
+        return
+
+    if sentence:
+        if isinstance(sentence, Sentence):
+            sentences = [sentence]
+        elif isinstance(sentence, str):
+            sent_as_doc = NLP(sentence)
+            sentences = [SentenceProvider(sent_as_doc)]
+        elif isinstance(sentence, doc):
+            sentences = [SentenceProvider(sentence)]
+        else:
+            print("Error parsing the input")
+            return
+    elif text:
+        document = preprocess.clean_to_doc(text)
+        sentence_provider = SentenceProvider(document)
+        sentences = sentence_provider.get_top_sentences(trim=trim)
+
+    else:
+        print("No input provided")
+        return
+
+    # Start the Matcher
+    initialize_question_patterns()
+    all_questions = set([])
+    seen_questions = set([])
+    sentences_with_questions = {}
+
+    for sentence in sentences:
+        sentences_with_questions[sentence] = set([])
+        if simplify:
+            simplified_sentences = simplifier.simplify_sentence(sentence.text)
+        else:
+            simplified_sentences = [sentence.as_doc]
+
+        for s in simplified_sentences:
+            matches = MATCHER(s)
+
+            for ent_id, start, end in matches:
+                match = Match(ent_id, start, end, s)
+                pattern_name = NLP.vocab.strings[ent_id]
+
+                questions = handle_match(pattern_name)(match)
+                if questions:
+                    for (question, answer) in questions:
+                        if question.lower() not in seen_questions:
+                            seen_questions.add(question.lower())
+                            q_object = Question(question, sentence, answer)
+                            sentences_with_questions[sentence].add(q_object)
+                            all_questions.add(q_object)
+
+    for sent in sentences_with_questions.keys():
+        questions = score_and_filter(sentences_with_questions[sent], descending=True)
+        all_questions.union(questions)
+
+    print_sentences_with_questions(sentences_with_questions)
+    all_sorted_questions = sort_by_score(all_questions, descending=True)
+
+    return questions
+
+
 if __name__ == '__main__':
-    generate_q()
-    # trial_sentences()
+    # generate_q()
+    trial_sentences()
     # generate_questions_trial(simplify=False)
+    # text = read_file(input('Filepath: '))
+    # generate_questions(text=text, trim=False)

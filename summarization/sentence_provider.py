@@ -29,7 +29,7 @@ class Sentence(object):
 
         self.simplified_versions = []
 
-    def _compute_score(self):
+    def compute_score(self):
         score = self.score
 
         for kp in self.keywords:
@@ -40,7 +40,7 @@ class Sentence(object):
 
         self.score = score
 
-    def add(self, obj):
+    def add_key(self, obj):
         if isinstance(obj, Keyword):
             self.keywords.append(obj)
 
@@ -58,28 +58,29 @@ class SentenceProvider(object):
     def __init__(self, doc, topic=None):
         self.keyword_provider = KeywordProvider(doc, topic)
         self.keywords = self.keyword_provider.keywords
-        self.sentences = self.keyword_provider.sentences
+        self.key_phrases = self.keyword_provider.key_phrases
 
+        self.sentences = self.keyword_provider.sentences
         self.sentence_objects = []
 
-        # Expect token topic
+        # Expect token topic is used witse
         self.topic = topic
 
-        self.__compute_sentences()
+        self._compute_sentences()
 
-    def __compute_sentences(self):
-        graph = self.build_graph(self.sentences)
-        sentence_graph = self.add_graph_edges(graph, self.sentences, self.get_spacy_similarity)
-        pagerank_scores = self.get_pagerank_scores(sentence_graph)
+    def _compute_sentences(self):
+        graph = self._build_graph(self.sentences)
+        sentence_graph = self._add_graph_edges(graph, self.sentences, self._spacy_similarity)
+        pagerank_scores = self._get_pagerank_scores(sentence_graph)
 
-        sentences_dict = self.get_sentences_with_scores(pagerank_scores, self.sentences)
+        sentences_dict = self._get_sentences_with_scores(pagerank_scores, self.sentences)
 
-        sentences_dict = self.augment_sentence_objects(sentences_dict, self.keyword_provider.keywords)
-        sentences_dict = self.augment_sentence_objects(sentences_dict, self.keyword_provider.key_phrases)
+        sentences_dict = self._augment_sentence_objects(sentences_dict, self.keyword_provider.keywords)
+        sentences_dict = self._augment_sentence_objects(sentences_dict, self.keyword_provider.key_phrases)
 
-        self.calculate_final_scores(sentences_dict)
+        self._calculate_final_scores(sentences_dict)
 
-        self.sentence_objects = self.sort_by_score(list(sentences_dict.values()), descending=True)
+        self.sentence_objects = self._sort_by_score(list(sentences_dict.values()), descending=True)
 
     def get_top_sentences(self, sentence_count=None, trim=True):
         if sentence_count is None:
@@ -93,28 +94,26 @@ class SentenceProvider(object):
         else:
             return self.sentence_objects
 
-        return sentences
-
     @staticmethod
-    def calculate_final_scores(sentence_dictionary):
+    def _calculate_final_scores(sentence_dictionary):
         for sent in sentence_dictionary.values():
-            sent._compute_score()
+            sent.compute_score()
 
     @staticmethod
-    def sort_by_score(unsorted, descending=False):
+    def _sort_by_score(unsorted, descending=False):
         return sorted(unsorted, key=lambda el: el.score, reverse=descending)
 
     @staticmethod
-    def augment_sentence_objects(sentences_with_scores, objects):
+    def _augment_sentence_objects(sentences_with_scores, objects):
         for obj in objects:
             sentence = obj.sentence
             if sentence in sentences_with_scores:
-                sentences_with_scores[sentence].add(obj)
+                sentences_with_scores[sentence].add_key(obj)
 
         return sentences_with_scores
 
     @staticmethod
-    def get_sentences_with_scores(pagerank_scores, sentences):
+    def _get_sentences_with_scores(pagerank_scores, sentences):
         sentences_with_scores = {}
         for sentence in sentences:
             sent_object = Sentence(sentence, pagerank_scores[sentence])
@@ -123,23 +122,24 @@ class SentenceProvider(object):
         return sentences_with_scores
 
     @staticmethod
-    def get_pagerank_scores(graph):
+    def _get_pagerank_scores(graph):
         pagerank_scores = nx.pagerank(graph)
         return pagerank_scores
 
     @staticmethod
-    def build_graph(chosen_sentences):
+    def _build_graph(chosen_sentences):
         graph = nx.DiGraph()
         graph.add_nodes_from(chosen_sentences)
 
         return graph
 
     @staticmethod
-    def get_spacy_similarity(sentence_1, sentence_2):
+    def _spacy_similarity(sentence_1, sentence_2):
+        # print("S1:{}\nS2:{}\nSim:{}\n".format(sentence_1, sentence_2, sentence_1.similarity(sentence_2)))
         return sentence_1.similarity(sentence_2)
 
     @staticmethod
-    def add_graph_edges(graph, sentences, similarity):
+    def _add_graph_edges(graph, sentences, similarity):
         """
         Adds edge between all words in word sequence that are within WINDOW_SIZE
         of each other. I.e if within WINDOW_SIZE the two words co-occur
@@ -193,12 +193,12 @@ if __name__ == '__main__':
     document = preprocess.clean_to_doc(FILE_TEXT)
     summarizer = SentenceProvider(document)
 
-    topic = NLP(input("Topic?: "))
-    summarizer_topic = SentenceProvider(document, topic=topic)
-
+    # topic = NLP(input("Topic?: "))
+    # summarizer_topic = SentenceProvider(document, topic=topic)
+    #
     print(summarizer.get_summary())
-    print("")
-    print(summarizer_topic.get_summary())
+    # print("")
+    # print(summarizer_topic.get_summary())
     # print(summarizer.get_summary())
 
     # print_summary_to_file(get_summary, FILE_PATH, OUTPUT_DIR, IDENTIFIER)
