@@ -7,7 +7,7 @@ from nltk.metrics.scores import f_measure, precision, recall
 from baselines.keyword_baseline import get_keywords as get_baseline_keywords
 from data import DATA_DIR
 from keyword_extraction.keywords_TR import get_keywords as get_graph_keywords_2
-from keyword_extraction.keywords_TR_lem import KeywordProvider
+from keyword_extraction.keyword_provider import KeywordProvider
 from keyword_extraction.keywords_filtered import get_keywords as get_graph_keywords_4
 from text_processing import preprocessing
 from text_processing.preprocessing import clean_to_doc
@@ -184,10 +184,6 @@ def aggregate_results():
         av_lem_w_p += p
         av_lem_w_r += r
 
-        # (f1, p, r) = keyphrase_score(keyphrases_TR_lem, ref_ngrams)
-        # av_lem_kp_f1 += f1
-        # av_lem_kp_p += p
-        # av_lem_kp_r += r
 
         k_TR = list(set(' '.join(keyphrases_TR).split()))
         (f1, p, r) = keyword_score(keyphrases_TR, ref_ngrams)
@@ -195,10 +191,6 @@ def aggregate_results():
         av_w_p += p
         av_w_r += r
 
-        # (f1, p, r) = keyphrase_score(keyphrases_TR, ref_ngrams)
-        # av_kp_f1 += f1
-        # av_kp_p += p
-        # av_kp_r += r
 
         k_TR_filt = list(set(' '.join(keyphrases_filtered).split()))
         (f1, p, r) = keyword_score(keyphrases_filtered, ref_ngrams)
@@ -206,21 +198,11 @@ def aggregate_results():
         av_filt_w_p += p
         av_filt_w_r += r
 
-        # (f1, p, r) = keyphrase_score(keyphrases_filtered, ref_ngrams)
-        # av_filt_kp_f1 += f1
-        # av_filt_kp_p += p
-        # av_filt_kp_r += r
-
         k_established = list(set((' '.join(established_keyphrases)).split()))
         (f1, p, r) = keyword_score(established_keyphrases, ref_ngrams)
         av_est_w_f1 += f1
         av_est_w_p += p
         av_est_w_r += r
-
-        # (f1, p, r) = keyphrase_score(established_keyphrases, ref_ngrams)
-        # av_est_kp_f1 += f1
-        # av_est_kp_p += p
-        # av_est_kp_r += r
 
         n = n+1
 
@@ -259,15 +241,6 @@ def aggregate_results():
 
     av_filt_w_r *= 100 / n
     av_filt_kp_r *= 100 / n
-
-    # res_kp = "F1 lemmas:{} , Precision lemmas:{}, Recall lemmas:{} \n\
-    # F1 w/o lemmas:{} , Precision w/o lemmas:{}, Recall w/o lemmas:{} \n\
-    # F1 filtered:{} , Precision filtered:{}, Recall filtered:{} \n\
-    # F1 established:{} , Precision established:{}, Recall established:{}\n".\
-    #     format(av_lem_kp_f1, av_lem_kp_p, av_lem_kp_r,
-    #            av_kp_f1, av_kp_p, av_kp_r,
-    #            av_filt_kp_f1, av_filt_kp_p, av_filt_kp_r,
-    #            av_est_kp_f1,av_est_kp_p, av_est_kp_r)
 
     res_w = "F1 lemmas:{} , Precision lemmas:{}, Recall lemmas:{}\n\
     F1 w/o lemmas:{} , Precision w/o lemmas:{}, Recall w/o lemmas:{}\n\

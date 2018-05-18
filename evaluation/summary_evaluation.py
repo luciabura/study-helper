@@ -1,20 +1,16 @@
 import glob
 import os
 
+import nltk.translate.bleu_score as NLTK_BLEU
 from sumeval.metrics.bleu import BLEUCalculator
 from sumeval.metrics.rouge import RougeCalculator
 
-from evaluation.py3cocoeval.bleu.bleu_scorer import BleuScorer
-from evaluation.py3cocoeval.meteor.meteor import Meteor
-
 from data import DATA_DIR
-from summarization import gensim_sum, sentence_provider, sumy_summary
+from evaluation.py3cocoeval.bleu.bleu_scorer import BleuScorer
+from sentence_extraction import external_gensim_sum, sentence_provider
 from text_processing import preprocessing
 from utilities import NLP
 from utilities.read_write import read_file, print_to_file, print_summary_to_file
-from baselines.summary_baseline import get_summary as baseline_summary
-
-import nltk.translate.bleu_score as NLTK_BLEU
 
 SUMM_DIR = os.path.join(DATA_DIR, 'summarization_eval')
 SUMM_BODY = os.path.join(SUMM_DIR, 'body')
@@ -186,7 +182,7 @@ def evaluate_summary_manual():
     summarizer = sentence_provider.SentenceProvider(document)
 
     system_summary = summarizer.get_summary(sentence_count=sentence_count)
-    gensim_summary = gensim_sum.get_summary(summary_text)
+    gensim_summary = external_gensim_sum.get_summary(summary_text)
 
     result = get_evaluation_scores(system_summary, reference_summary)
     print("System summary")

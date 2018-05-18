@@ -14,10 +14,11 @@ import os
 import spacy
 from sumeval.metrics.bleu import BLEUCalculator
 from evaluation.summary_evaluation import NLTK_BLEU
-from question_generation.questions_2 import generate_questions_trial
+from question_generation.question_provider import generate_questions_trial
 import evaluation.heilman as heilman
 
 from text_processing.grammar import spacy_similarity
+from utilities.read_write import print_to_file
 
 NLP = spacy.load('en_core_web_lg')
 
@@ -26,6 +27,8 @@ __location__ = os.path.realpath(
 questions_filepath = os.path.join(__location__, 'questions_corpus.txt')
 squad_filepath = os.path.join(__location__, 'paragraphs_with_questions.json')
 msmarco_filepath = os.path.join(__location__, 'sentences_with_questions.json')
+results_filepath = os.path.join(__location__, 'results')
+
 BLEU = BLEUCalculator()
 
 with open(squad_filepath) as f:
@@ -108,7 +111,14 @@ def evaluate_question_similarity_msmarco():
         text = data_el['answer']
         golden_questions = [question]
         my_questions = [q.content.text for q in generate_questions_trial(text=text, simplify=False)]
+        string_qs = '\n'.join(my_questions)
+        file_path = os.path.join(results_filepath, "system_"+str(count))
+        print_to_file(path=file_path, content=string_qs)
         heilman_questions = [question for question in heilman.generate_questions_from_path(text=text)]
+
+        string_hs = '\n'.join(heilman_questions)
+        file_path = os.path.join(results_filepath, "heilman_"+str(count))
+        print_to_file(path=file_path, content=string_hs)
 
         av_me = 0
         av_he = 0
@@ -136,7 +146,6 @@ def evaluate_question_similarity_msmarco():
         heil_score += av_he
 
         print("My system:{},Heilman:{}".format(av_me, av_he).replace(",", "\n"))
-
 
     sys_score /= count
     heil_score /= count
