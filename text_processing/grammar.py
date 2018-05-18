@@ -169,3 +169,9 @@ def spacy_similarity(text1, text2):
     doc1 = NLP(text1)
     doc2 = NLP(text2)
     return doc1.similarity(doc2)
+
+
+def make_spacy_sentence(text_list):
+    text = safe_join(text_list)
+    doc = NLP(text)
+    return doc
