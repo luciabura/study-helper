@@ -1,6 +1,8 @@
-from spacy.tokens import doc
+import math
 
-from question_generation.question_provider import sequence_surprize
+from spacy.tokens import doc
+from wordfreq import word_frequency
+
 from utilities import NLP
 
 
@@ -79,3 +81,18 @@ class Question:
             return self.content.similarity(question2)
         else:
             return None
+
+
+def sequence_surprize(text):
+    word_list = text.split()
+    av_s = 0
+    for word in word_list:
+        wf = word_frequency(word, lang='en') * 1e8
+        if wf:
+            av_s += 1 / wf
+        else:
+            av_s += 0.1
+
+    if len(word_list) > 1:
+        av_s /= math.log(len(word_list))
+    return av_s

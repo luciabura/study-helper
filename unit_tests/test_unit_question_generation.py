@@ -1,7 +1,7 @@
 import pytest
 
 from question_generation.question_provider import score_and_filter, prepare_question_verb, get_verb_form
-from question_generation.question import Question
+from question_generation.question import Question, sequence_surprize
 from sentence_extraction.sentence import Sentence
 from utilities import NLP
 

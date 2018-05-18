@@ -1,9 +1,7 @@
-import math
 from collections import OrderedDict
 
 from spacy.matcher import Matcher
 from spacy.tokens import doc
-from wordfreq import word_frequency
 
 import question_generation.sentence_simplifier as simplifier
 # from evaluation.question_evaluation import spacy_perplexity
@@ -86,21 +84,6 @@ def initialize_question_patterns():
     MATCHER.add("DOBJ-POBJ", None, dative_pobj)
     MATCHER.add("CCOMP", None, ccomp_1)
     MATCHER.add("CCOMP", None, ccomp_2)
-
-
-def sequence_surprize(text):
-    word_list = text.split()
-    av_s = 0
-    for word in word_list:
-        wf = word_frequency(word, lang='en') * 1e8
-        if wf:
-            av_s += 1 / wf
-        else:
-            av_s += 0.1
-
-    if len(word_list) > 1:
-        av_s /= math.log(len(word_list))
-    return av_s
 
 
 def sort_scores(scores):
