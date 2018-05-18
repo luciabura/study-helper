@@ -92,6 +92,41 @@ class KeywordProvider(object):
             keyword.score += keyword.token.similarity(topic)
 
 
+class SimpleKeywordProvider(KeywordProvider):
+    def __init__(self, doc):
+        KeywordProvider.__init__(self, doc)
+
+    @staticmethod
+    def get_graph_words(tokens):
+        graph_words = list(set([token.lower_ for token in tokens]))
+
+        return graph_words
+
+    @staticmethod
+    def add_graph_edges(graph, tokens):
+        for i in range(0, len(tokens) - WINDOW_SIZE - 1):
+            for j in range(i + 1, i + WINDOW_SIZE + 1):
+                w1 = tokens[i].lower_
+                w2 = tokens[j].lower_
+                if graph.has_node(w1) and graph.has_node(w2) and w1 != w2:
+                    graph.add_edge(w1, w2, weight=1)
+
+        return graph
+
+    @staticmethod
+    def get_keywords_with_scores(pagerank_scores, sentences):
+        keywords_with_scores = []
+        for sentence in sentences:
+            for token in sentence:
+                if token.lower_ in pagerank_scores.keys():
+                    keyword_with_score = Keyword(token, score=pagerank_scores[token.lower_], sentence=sentence)
+                    keywords_with_scores.append(keyword_with_score)
+
+        keywords_with_scores.sort(key=lambda kw: kw.score, reverse=True)
+
+        return keywords_with_scores
+
+
 def sort_by_score(unsorted, descending=False):
     return sorted(unsorted, key=lambda el: el.score, reverse=descending)
 
@@ -256,41 +291,6 @@ def filter_similar_key_phrases(sorted_keyphrases):
             key_phrase_list.append(kp)
 
     return key_phrase_list
-
-
-class OriginalKeywordProvider(KeywordProvider):
-    def __init__(self, doc):
-        KeywordProvider.__init__(self, doc)
-
-    @staticmethod
-    def get_graph_words(tokens):
-        graph_words = list(set([token.lower_ for token in tokens]))
-
-        return graph_words
-
-    @staticmethod
-    def add_graph_edges(graph, tokens):
-        for i in range(0, len(tokens) - WINDOW_SIZE - 1):
-            for j in range(i + 1, i + WINDOW_SIZE + 1):
-                w1 = tokens[i].lower_
-                w2 = tokens[j].lower_
-                if graph.has_node(w1) and graph.has_node(w2) and w1 != w2:
-                    graph.add_edge(w1, w2, weight=1)
-
-        return graph
-
-    @staticmethod
-    def get_keywords_with_scores(pagerank_scores, sentences):
-        keywords_with_scores = []
-        for sentence in sentences:
-            for token in sentence:
-                if token.lower_ in pagerank_scores.keys():
-                    keyword_with_score = Keyword(token, score=pagerank_scores[token.lower_], sentence=sentence)
-                    keywords_with_scores.append(keyword_with_score)
-
-        keywords_with_scores.sort(key=lambda kw: kw.score, reverse=True)
-
-        return keywords_with_scores
 
 
 if __name__ == '__main__':
