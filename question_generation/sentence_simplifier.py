@@ -1,7 +1,5 @@
-import os
 from queue import Queue
 
-from nltk.parse.stanford import StanfordParser
 from spacy import displacy
 from spacy.matcher import Matcher
 
@@ -10,15 +8,6 @@ from question_generation import *
 from text_processing.grammar import extract_noun_phrase, is_valid_sentence, find_parent_verb, \
     get_verb_correct_tense, remove_spans, get_subtree_span, safe_join
 from utilities import NLP
-
-# __location__ = os.path.realpath(
-#     os.path.join(os.getcwd(), os.path.dirname(__file__)))
-
-# parser_path = os.path.join(__location__, "stanford_parser/englishPCFG.ser.gz")
-# jar_path = os.path.join(__location__, "stanford_parser/stanford-parser.jar")
-# model_path = os.path.join(__location__, "stanford_parser/stanford-parser-models.jar")
-
-# PARSER = StanfordParser(model_path=parser_path, path_to_jar=jar_path, path_to_models_jar=model_path)
 from utilities.read_write import read_file
 
 REL_PRONS_REM = ['which', 'who']
@@ -37,12 +26,9 @@ def initialize_matcher_patterns():
     conjoined_sentences_2 = [{DEP: 'nsubjpass'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN,
                              {POS: 'VERB', DEP: 'conj'}]
 
-    # conjoined_subjects_1 = [{DEP: 'nsubj'}, ANY, {DEP: 'cc'}, ANY, {DEP: 'conj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}]
-    # conjoined_subjects_2 = [{DEP: 'nsubjpass'}, ANY, {DEP: 'cc'}, ANY, {DEP: 'conj'}, ANY, {POS: 'VERB', DEP: 'ROOT'}]
-
-    commas = [{ORTH: ','}, ANY_TOKEN, {ORTH: ','}]
-    comma_end = [{ORTH: ','}, ANY_TOKEN, {ORTH: '.'}]
-    parenthesis = [{ORTH: '('}, ANY_TOKEN, {ORTH: ')'}]
+    commas = [{ORTH: ','}, ANY_TOKEN, {ORTH: ',', OP: '!'}, ANY_TOKEN, {ORTH: ','}]
+    comma_end = [{ORTH: ','}, ANY_TOKEN, {ORTH: ',', OP: '!'}, ANY_TOKEN, {ORTH: '.'}]
+    parenthesis = [{ORTH: '('}, ANY_TOKEN, {ORTH: '(', OP: '!'}, ANY_TOKEN, {ORTH: ')'}]
 
     adjectival_modifier = [{DEP: 'acl'}]
     relative_clause_modifier = [{DEP: 'relcl'}]
@@ -57,27 +43,31 @@ def initialize_matcher_patterns():
 
     # test_pattern = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB'}, ANY_TOKEN, {DEP: 'nsubj'}]
 
-    MATCHER.add("CONJ_SENT", None, conjoined_sentences_1)
-    MATCHER.add("CONJ_SENT", None, conjoined_sentences_2)
+    # MATCHER.add("CONJ_SENT", None, conjoined_sentences_1)
+    # MATCHER.add("CONJ_SENT", None, conjoined_sentences_2)
     MATCHER.add("PUNCT", None, commas)
     MATCHER.add("PUNCT", None, comma_end)
     MATCHER.add("PUNCT", None, parenthesis)
     MATCHER.add("ACL", None, adjectival_modifier)
-    MATCHER.add("RELCL", None, relative_clause_modifier)
+    # MATCHER.add("RELCL", None, relative_clause_modifier)
     MATCHER.add("APPOS", None, appositive)
-    MATCHER.add("CCOMP", None, clausal_complement)
-    MATCHER.add("LEAD_PP", None, leading_pp)
-    MATCHER.add("SUBORD", None, adverbial_clause_modifier)
+    # MATCHER.add("CCOMP", None, clausal_complement)
+    # MATCHER.add("LEAD_PP", None, leading_pp)
+    # MATCHER.add("SUBORD", None, adverbial_clause_modifier)
 
     # MATCHER.add("TP", None, test_pattern)
 
 
-def post_process(sentence):
+def post_process(sentence_components):
     """
-    TODO: add check for trailing punctuation
-    TODO: check if subject is a pronoun
+    Accepts sentence components in form of list of strings
+    Gives a post processed sentence with a . at the end.
     """
-    pass
+    sent_text = ' '.join(sentence_components)
+    if sent_text[-1] is not '.':
+        sent_text += '.'
+
+    return sent_text
 
 
 def extract_conjoined_subjects(match):
@@ -138,7 +128,7 @@ def extract_conjugate_sentences(match):
     # conj_sent = NLP(' '.join([tok.text for tok in conj_subtree]))
     conj_sent = [tok.text for tok in conj_subtree]
 
-    root_sent = remove_spans(sentence, [conj_subtree, [conj]])
+    root_sent = remove_spans(sentence, [conj_subtree, conj])
     if root_sent[-1] in [",", ";"]:
         root_sent.pop()
     root_sent.append('.')
@@ -192,7 +182,7 @@ def extract_appositives(match):
     next_token_index = appositive_np[-1].i + 1
 
     if sentence[preceding_token_index].pos_ == "PUNCT":
-        sentence = remove_spans(sentence, [sentence[preceding_token_index : next_token_index + 1]])
+        sentence = remove_spans(sentence, [sentence[preceding_token_index: next_token_index + 1]])
     else:
         sentence = remove_spans(sentence, [appositive_np])
 
@@ -212,6 +202,7 @@ def extract_adjectival_modifier(match):
         return []
 
     adj_mod_np = extract_noun_phrase(adj_mod, sentence)
+    # Remove punctuation in case acl is between commas -> , X ,
     subject_np = extract_noun_phrase(subject, sentence, exclude_span=adj_mod_np, discard_punct=[','])
 
     verb = get_verb_correct_tense(dependant_noun_phrase=subject_np, dependant_verb=adj_mod, verb_lemma='be')
@@ -256,7 +247,7 @@ def extract_from_punct(match):
     #             punct_sent.remove(first_after_punct.text)
 
     if len(punct_sent) == 0:
-        punct_sent = [tok.text for tok in punct_span] + ['.']
+        punct_sent = punct_span.as_doc().text.split(' ')
 
     sents.append(punct_sent)
     sents.append(sentence)
@@ -279,7 +270,7 @@ def extract_relative_clause_modifier(match):
                                       discard_punct=[","], exclude_span=relcl_span)
 
     relcl_sent = []
-    relcl_sent.extend([tok.text for tok in noun_phrase]) # if tok.pos_ != 'PUNCT'])
+    relcl_sent.extend([tok.text for tok in noun_phrase])  # if tok.pos_ != 'PUNCT'])
 
     first_tok = relcl_span[0]
     if first_tok.tag_ == 'WP$':
@@ -292,7 +283,7 @@ def extract_relative_clause_modifier(match):
         relcl_sent.append(first_tok.text)
 
     relcl_sent.extend([tok.text for tok in relcl_span[1:]])
-    remaining_sent = remove_spans(match.sentence, spans=[relcl_span])
+    remaining_sent = remove_spans(match.sentence, spans=[get_subtree_span(verb_relcl, match.sentence)])
 
     sentences.extend([relcl_sent, remaining_sent])
 
@@ -301,7 +292,7 @@ def extract_relative_clause_modifier(match):
 
 def extract_from_clausal_complement(match):
     sentences = []
-    ccomp_span = get_subtree_span(match.get_token_by_attributes(dependency="ccomp"),sentence=match.sentence)
+    ccomp_span = get_subtree_span(match.get_token_by_attributes(dependency="ccomp"), sentence=match.sentence)
     ccomp_mark = [tok for tok in ccomp_span if tok.dep_ == "mark"]
 
     if ccomp_mark:
@@ -345,60 +336,60 @@ def handle_match(pattern_name):
     return pattern_to_simplification[pattern_name]
 
 
-def sentences():
-    t1 = NLP(
-        u'In professional work, the most important attributes for HCI experts are to be both creative and practical, placing design at the centre of the field.')
-    t2 = NLP(
-        u'A computer science course does not provide sufficient time for this kind of training in creative design, but it can provide the essential elements: an understanding of the user s needs, and an understanding of potential solutions.')
-    t3 = NLP(u'A router is a forwarding device and it helps with inter-network communications.')
-    t4 = NLP(u'The cloud and wireless technology have both been invented in the last decade.')
-    t5 = NLP(u'Harry and Sally have never been to London.')
-    t6 = NLP(
-        u'A user centred design process, as taught in earlier years of the tripos and experienced in many group design projects, provides a professional approach to creating software with functionality that users need.')
-    t7 = NLP(u'However, John studied, hoping to get a good grade.')
-    t8 = NLP(u'That will not happen if the cork is placed at the right time.')
-    t9 = NLP(u'As far as current studies go, this is the best available solution.')
-    t10 = NLP(
-        u'Architects and product designers need a thorough technical grasp of the materials they work with, but the success of their work depends on the creative application of this technical knowledge.')
-    t11 = NLP(u'John writes and Mary paints. They both like pie.')
-    t12 = NLP(u'In principle, the RBMs can be trained separately and then fine-tuned in combination.')
-    t13 = NLP(
-        u'One interesting aspect of word2vec training is the use of negative sampling instead of softmax (which is computationally very expensive)')
-    t14 = NLP(u'The heavy rain, which was unusual for that time of year, destroyed most of the plants in my garden.')
-    t15 = NLP(u'The rule derived by Andrej can be used freely nowadays.')
-    t16 = NLP(u'They experimented on the people fired last year.')
-    t17 = NLP(u'They kept thinking about a way to escape.')
-    t18 = NLP(u'He came up with the idea of a time machine.')
-    t19 = NLP(u"They were looking forward to finishing the lesson on RISC architecture.")
-    t20 = NLP(u"He runs, but he is too slow for them.")
-    t21 = NLP(
-        u"A computer science course does not provide sufficient time for this kind of training in creative design, but it can provide the essential elements: an understanding of the user’s needs, and an understanding of potential solutions. ")
-    t22 = NLP(u"Compositional semantics is the construction of meaning (often expressed as logic) based on syntax.")
-    t23 = NLP(u"The computer whose hard disk was broken was taken away.")
-    t24 = NLP(u"The book, which is now at the store, has sold over 1000 copies so far.")
-    t25 = NLP(u"Apple’s first logo, designed by Jobs and Wayne, depicts Sir Isaac Newton sitting under an apple tree.")
-    t26 = NLP(u"John, her brother, is going to visit us.")
-    t26 = NLP(u"As John slept, she cried.")
-    t26 = NLP(u"They marched ahead although they were told to stay put.")
-    t26 = NLP(u"This includes the Long short term memory (LSTM) models which are a development of basic RNNs, which have been found to be more effective for at least some language applications.")
-    t26 = NLP("She decided she did not want any more tea, so shook her head when the waiter reappeared.")
-    t26 = NLP("In January, Ann stopped wearing her winter coat.")
-    t26 = NLP("Le and Mikolov (2014) describe doc2vec, which is a modification of word2vec.")
-    t26 = NLP("The twins, hoping to get a good grade, studied.")
-    t26 = NLP("Mara had her car stolen.")
-    # t26 = NLP("Ann's computer was turned off.")
-    # up is dep_ = 'prt'
-
-    # sent, appositive = extract_appositives(t2)
-    # print(sent)
-    # print(appositive)
-
-    show_dependencies(t26)
-    # print([(tok.dep_, tok.pos_) for tok in t10])
-    # for s in simplify_sentence(t25.text):
-    #     print(s)
-
-    # coref(t11)3
+# def sentences():
+#     t1 = NLP(
+#         u'In professional work, the most important attributes for HCI experts are to be both creative and practical, placing design at the centre of the field.')
+#     t26 = NLP(
+#         u"A computer science course does not provide sufficient time for this kind of training in creative design, but it can provide the essential elements: an understanding of the user's needs, and an understanding of potential solutions.")
+#     # t3 = NLP(u'A router is a forwarding device and it helps with inter-network communications.')
+#     # t4 = NLP(u'The cloud and wireless technology have both been invented in the last decade.')
+#     # t5 = NLP(u'Harry and Sally have never been to London.')
+#     # t6 = NLP(
+#     #     u'A user centred design process, as taught in earlier years of the tripos and experienced in many group design projects, provides a professional approach to creating software with functionality that users need.')
+#     # t7 = NLP(u'However, John studied, hoping to get a good grade.')
+#     # t8 = NLP(u'That will not happen if the cork is placed at the right time.')
+#     # t9 = NLP(u'As far as current studies go, this is the best available solution.')
+#     # t10 = NLP(
+#     #     u'Architects and product designers need a thorough technical grasp of the materials they work with, but the success of their work depends on the creative application of this technical knowledge.')
+#     # t11 = NLP(u'John writes and Mary paints. They both like pie.')
+#     # t12 = NLP(u'In principle, the RBMs can be trained separately and then fine-tuned in combination.')
+#     # t13 = NLP(
+#     #     u'One interesting aspect of word2vec training is the use of negative sampling instead of softmax (which is computationally very expensive)')
+#     # t14 = NLP(u'The heavy rain, which was unusual for that time of year, destroyed most of the plants in my garden.')
+#     # t15 = NLP(u'The rule derived by Andrej can be used freely nowadays.')
+#     # t16 = NLP(u'They experimented on the people fired last year.')
+#     # t17 = NLP(u'They kept thinking about a way to escape.')
+#     # t18 = NLP(u'He came up with the idea of a time machine.')
+#     # t19 = NLP(u"They were looking forward to finishing the lesson on RISC architecture.")
+#     # t20 = NLP(u"He runs, but he is too slow for them.")
+#     # t22 = NLP(u"Compositional semantics is the construction of meaning (often expressed as logic) based on syntax.")
+#     # t23 = NLP(u"The computer whose hard disk was broken was taken away.")
+#     # t24 = NLP(u"The book, which is now at the store, has sold over 1000 copies so far.")
+#     # t26 = NLP(u"Apple’s first logo, designed by Jobs and Wayne, depicts Sir Isaac Newton sitting under an apple tree.")
+#     # t26 = NLP(u"John, her brother, is going to visit us.")
+#     # t26 = NLP(u"As John slept, she cried.")
+#     # t26 = NLP(u"They marched ahead although they were told to stay put.")
+#     # t26 = NLP(u"This includes the Long short term memory (LSTM) models which are a development of basic RNNs, which have been found to be more effective for at least some language applications.")
+#     # t26 = NLP("She decided she did not want any more tea, so shook her head when the waiter reappeared.")
+#     # t26 = NLP("In January, Ann stopped wearing her winter coat.")
+#     # t26 = NLP("Le and Mikolov (2014) describe doc2vec, which is a modification of word2vec.")
+#     # t26 = NLP("The twins, hoping to get a good grade, studied.")
+#     # t26 = NLP("Mara had her car stolen.")
+#     # t26 = NLP("Ann's computer was turned off.")
+#     # t26 = NLP("A Named Entity (NE) is therefore anything we can refer to with a proper name.")
+#     # up is dep_ = 'prt'
+#
+#     # sent, appositive = extract_appositives(t2)
+#     # print(sent)
+#     # print(appositive)
+#
+#     # show_dependencies(t26)
+#     # print([(tok.dep_, tok.pos_) for tok in t10])
+#     # for s in simplify_sentence(t25.text):
+#     #     print(s)
+#
+#     # coref(t11)3
+#     # simplify_sent_2(t26.text)
 
 
 def make_spacy_sentence(text_list):
@@ -412,6 +403,45 @@ def is_simple(sent):
         return False
 
     return True
+
+
+def simplify_sent_2(sentence):
+    initialize_matcher_patterns()
+    sentences = []
+    seen_sents = [''.join(sentence.split(" "))]
+    sent_doc = NLP(sentence)
+    if is_simple(sent_doc):
+        return [sent_doc]
+
+    queue = Queue()
+    queue.put(sent_doc)
+    while not queue.empty():
+        sent = queue.get()
+        matches = MATCHER(sent)
+
+        for ent_id, start, end in matches:
+            match = Match(ent_id, start, end, sent)
+            pattern_name = NLP.vocab.strings[ent_id]
+
+            # print(pattern_name)
+            # print(match.span)
+
+            new_sents_comps = handle_match(pattern_name)(match)
+            new_sents_text = list(map(lambda y: post_process(y), new_sents_comps))
+            # print(new_sents_text)
+
+            for s in new_sents_text:
+                s_check = ''.join(s.split(" "))
+                if s_check not in seen_sents:
+                    seen_sents.append(s_check)
+                    s_doc = NLP(s)
+                    if is_valid_sentence(s_doc):
+                        if is_simple(s_doc):
+                            sentences.append(s_doc)
+                        else:
+                            queue.put(s_doc)
+
+    return sentences
 
 
 def simplify_sentence(sentence, coreferences={}):
@@ -453,30 +483,30 @@ def simplify_sentence(sentence, coreferences={}):
 
 
 def get_coreferences(text):
-        # text = u"John and Mary paint. They both like pie."
-        # text = u"A computer science course does not provide sufficient time for this kind of training in creative design, but it can provide the essential elements an understanding of the user s needs, and an understanding of potential solutions."
-        # text = u"My sister has a dog. She loves that dog."
-        # text = u"Apple's new iPhone was an incredible hit. Its price was, on the other hand, extremely unwieldy."
+    # text = u"John and Mary paint. They both like pie."
+    # text = u"A computer science course does not provide sufficient time for this kind of training in creative design, but it can provide the essential elements an understanding of the user s needs, and an understanding of potential solutions."
+    # text = u"My sister has a dog. She loves that dog."
+    # text = u"Apple's new iPhone was an incredible hit. Its price was, on the other hand, extremely unwieldy."
 
-        coref = Coref(nlp=NLP)
+    coref = Coref(nlp=NLP)
 
-        # clusters = coref.one_shot_coref(utterances=u"My sister has a dog. She loves that dog.")
-        clusters = coref.one_shot_coref(utterances=text)
-        # print(clusters)
+    # clusters = coref.one_shot_coref(utterances=u"My sister has a dog. She loves that dog.")
+    clusters = coref.one_shot_coref(utterances=text)
+    # print(clusters)
 
-        # mentions = coref.get_mentions()
-        # print(mentions)
+    # mentions = coref.get_mentions()
+    # print(mentions)
 
-        # utterances = coref.get_utterances()
-        # print(utterances)
+    # utterances = coref.get_utterances()
+    # print(utterances)
 
-        resolved_utterance_text = coref.get_resolved_utterances()
-        print(resolved_utterance_text)
+    resolved_utterance_text = coref.get_resolved_utterances()
+    print(resolved_utterance_text)
 
-        coreferences = coref.get_most_representative()
-        print(coreferences)
+    coreferences = coref.get_most_representative()
+    print(coreferences)
 
-        return resolved_utterance_text
+    return resolved_utterance_text
 
 
 def show_dependencies(sentence, port=5001):
@@ -496,14 +526,13 @@ def resolve_coreferences():
     get_coreferences(text)
 
 
-if __name__ == '__main__':
-    doc = NLP(u'The set of natural numbers is countably infinite and different from the compatibility of systems.')
-    # for tok in doc:
-    #     print (tok.text, tok.dep_, tok.head)
-    # show_dependencies(doc)
-    # get_coreferences()
-
-    sentences()
-    # simplify_sent_test()
-
-    # resolve_coreferences()
+# if __name__ == '__main__':
+#     # doc = NLP(u'The set of natural numbers is countably infinite and different from the compatibility of systems.')
+#     # for tok in doc:
+#     #     print (tok.text, tok.dep_, tok.head)
+#     # show_dependencies(doc)
+#     # get_coreferences()
+#
+#     sentences()
+#     # simplify_sent_test()
+#     # resolve_coreferences()
