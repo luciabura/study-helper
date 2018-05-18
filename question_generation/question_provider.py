@@ -2,15 +2,16 @@ import math
 from collections import OrderedDict
 
 from spacy.matcher import Matcher
-from spacy.tokens import Token, doc
+from spacy.tokens import doc
 from wordfreq import word_frequency
 
 import question_generation.sentence_simplifier as simplifier
 # from evaluation.question_evaluation import spacy_perplexity
-from keyword_extraction.keyword_provider import KeyPhrase, Keyword
 from neuralcoref import Coref
 from question_generation import *
-from sentence_extraction.sentence_provider import SentenceProvider, Sentence
+from question_generation.question import Question
+from sentence_extraction.sentence_provider import SentenceProvider
+from sentence_extraction.sentence import Sentence
 # from summarization.summary import get_sentences_with_keywords_and_scores
 from text_processing import preprocessing as preprocess
 from text_processing.grammar import *
@@ -25,97 +26,6 @@ WHEN_PREPS = ['before', 'after', 'since', 'until', 'when']
 WHERE_PREPS = ['to', 'on', 'at', 'over', 'in', 'behind', 'above', 'below', 'from', 'inside', 'outside']
 
 MATCHER = Matcher(NLP.vocab)
-
-class Question:
-    def __init__(self, question, sentence, answer):
-        self.content = NLP(question)
-        # Assumes we get a sentence object of the form described by Sentence in sentence_provider
-        self.sentence = sentence
-        self.key_phrases = sentence.key_phrases
-        self.answer = answer
-
-        self.score = 0
-
-        self.__compute_score()
-
-    def __compute_score(self):
-        # Exclude questions which are referring expressions
-        # eg: What is he looking at?
-
-        # Filter out questions which don't make sense
-        for tok in self.content:
-            if (tok.tag_ == 'PRON' or tok.tag_ == 'PRP') or \
-                    (tok.tag_ == 'DT' and tok.dep_.startswith('nsubj')):
-                if tok.text in ['we', 'you']:
-                    continue
-                self.score = 0
-                return
-
-        # Calculating the score for keywords within Question
-        score_q = 0
-        div = 0
-        alpha = 0.955
-
-        for kp in self.sentence.key_phrases:
-            if kp.text in self.content.text.lower():
-                div += 1
-                surprise_factor_normalized = sequence_surprize(kp.text)
-                score_q += alpha * kp.score + (1 - alpha) * surprise_factor_normalized
-        if div:
-            score_q = score_q / div
-
-        # Calculating the score for keywords within answer phrase
-        text_answer = [tok.lower_ for tok in self.answer]
-        text_answer = ' '.join(text_answer)
-
-        score_kp = 0
-        div = 0
-        for kp in self.sentence.key_phrases:
-            if kp.text in text_answer:
-                div += 1
-                surprise_factor_normalized = sequence_surprize(kp.text)
-                score_kp += alpha * kp.score + (1 - alpha) * surprise_factor_normalized
-
-        if div:
-            score_kp = score_kp / div
-
-        beta = 0.2
-        if score_q and score_kp:
-            score = (1.0 + beta ** 2) * (score_q * score_kp) / (score_q + (beta ** 2) * score_kp)
-        elif score_q:
-            score = score_q
-        else:
-            score = score_kp * (1 - beta)
-
-        # if len(self.content) > 0:
-        #     score /= math.log(len(self.content))
-
-        self.score = score
-
-    def get_similarity(self, question2):
-        if isinstance(question2, Question):
-            return self.content.similarity(question2.content)
-        elif isinstance(question2, str):
-            return self.content.similarity(NLP(question2))
-        elif isinstance(question2, doc):
-            return self.content.similarity(question2)
-        else:
-            return None
-
-
-def sequence_surprize(text):
-    word_list = text.split()
-    av_s = 0
-    for word in word_list:
-        wf = word_frequency(word, lang='en') * 1e8
-        if wf:
-            av_s += 1 / wf
-        else:
-            av_s += 0.1
-
-    if len(word_list) > 1:
-        av_s /= math.log(len(word_list))
-    return av_s
 
 
 def initialize_question_patterns():
@@ -178,45 +88,27 @@ def initialize_question_patterns():
     MATCHER.add("CCOMP", None, ccomp_2)
 
 
-def choose_wh_word(span):
-    """
-        Takes a span of tokens and returns the corresponding wh-word to construct a sentence with it
-        could be a word, could be a phrase
-        eg: England: subj -> Which location
-        Ann: subj -> who?
-    """
-    wh_word = 'What'
-    # Choose 'how much'
-    if any(tok.ent_type_ in HOW_MUCH_ENTS for tok in span):
-        return 'How much'
+def sequence_surprize(text):
+    word_list = text.split()
+    av_s = 0
+    for word in word_list:
+        wf = word_frequency(word, lang='en') * 1e8
+        if wf:
+            av_s += 1 / wf
+        else:
+            av_s += 0.1
 
-    # Choose 'who'
-    # Not good: could have tokens there but need to be immediatelly related to verb...
-    # Amelia took a present to Joanna. What did Amelia take to Joanna?
-    if any(tok.ent_type_ in WHO_ENTS for tok in span):
-        return 'Who'
-
-    # Choose 'when'
-    if any(tok.ent_type_ in WHEN_ENTS
-           or tok.text in WHEN_PREPS
-           or tok.head.text in WHEN_PREPS
-           for tok in span):
-        return 'When'
-
-    # Choose 'where'
-    for tok in span:
-        if tok.ent_type_ in WHERE_ENTS \
-                and tok.head.dep_ == 'prep' \
-                and tok.head.text in WHERE_PREPS:
-            return 'Where'
-
-    return wh_word
+    if len(word_list) > 1:
+        av_s /= math.log(len(word_list))
+    return av_s
 
 
 def sort_scores(scores):
     sorted_scores = OrderedDict(sorted(scores.items(), key=lambda t: t[1], reverse=True))
 
     return sorted_scores
+
+# =========================== VERB PREPARATION ===========================
 
 
 def conjugate_verb(verb):
@@ -351,6 +243,43 @@ def format_phrase(span):
             phrase.append(tok.text)
 
     return ' '.join(phrase)
+
+# =========================== QG PATTERN EXTRACTION ===========================
+
+
+def choose_wh_word(span):
+    """
+        Takes a span of tokens and returns the corresponding wh-word to construct a sentence with it
+        could be a word, could be a phrase
+        eg: England: subj -> Which location
+        Ann: subj -> who?
+    """
+    wh_word = 'What'
+    # Choose 'how much'
+    if any(tok.ent_type_ in HOW_MUCH_ENTS for tok in span):
+        return 'How much'
+
+    # Choose 'who'
+    # Not good: could have tokens there but need to be immediatelly related to verb...
+    # Amelia took a present to Joanna. What did Amelia take to Joanna?
+    if any(tok.ent_type_ in WHO_ENTS for tok in span):
+        return 'Who'
+
+    # Choose 'when'
+    if any(tok.ent_type_ in WHEN_ENTS
+           or tok.text in WHEN_PREPS
+           or tok.head.text in WHEN_PREPS
+           for tok in span):
+        return 'When'
+
+    # Choose 'where'
+    for tok in span:
+        if tok.ent_type_ in WHERE_ENTS \
+                and tok.head.dep_ == 'prep' \
+                and tok.head.text in WHERE_PREPS:
+            return 'Where'
+
+    return wh_word
 
 
 def generate_prepositional_questions(match):
@@ -559,99 +488,6 @@ def generate_dobj_questions(match):
     return questions
 
 
-#
-# def generate_questions(text):
-#
-#     # The protocol for getting sentences with corresponding scores and keywords
-#     text_as_doc = preprocess.clean_to_doc(text)
-#     keywords_with_scores = get_keywords_with_scores(text_as_doc)
-#     sentences = preprocess.sentence_tokenize(text)
-#     sentences_with_keywords_and_scores = get_sentences_with_keywords_and_scores(sentences, keywords_with_scores)
-#
-#     sorted_sentences = list(sort_scores(sentences_with_keywords_and_scores))
-#     i = 0
-#     for sentence in sorted_sentences:
-#         # for token in sentence:
-#         # print(token.text, token.dep_)
-#         # showTree(sentence)
-#         print(sentence[0:2], i)
-#         i += 1
-#         # print(sentences_with_keywords_and_scores[sentence][1])
-#         # break
-#
-
-def get_coreference(pronoun):
-    """Implement if time -> pronoun get document coreference with neuralcoref"""
-    return 0
-
-
-# def trial_sentences():
-    # text = NLP(u'Computer architecture is a set of rules that describe the functionality of computer systems.')
-    # text_2 = NLP(u"Apple's logo was designed by Steve Jobs.")
-    # text_3 = NLP(u"Stacy went to see Johnny at the store.")
-    # doc2 = NLP('John studied, hoping to get a good grade.')
-    # doc3 = NLP(u'I bought the book that inspired Bob.')
-    # doc4 = NLP(u'John gave Mary the book.')
-    # doc5 = NLP(u'Machines for calculating fixed numerical tasks such as the abacus have existed since antiquity.')
-    # doc6 = NLP(u'I am going to meet her for lunch tomorrow.')
-    # doc7 = NLP(u'This area became [a prohibited zone.')
-    # doc8 = NLP(u'The handle should be attached before the mantle.')
-    # doc9 = NLP(u'The United States is a terrible place to go to.')
-    # doc10 = NLP(u'From outside to inside, the chip contains several layers of complex intertwined transistors.')
-    # text_4 = NLP(
-    #     u'A router is a networking device that forwards data packets between computer networks and a house is a living space.')
-    # d = NLP(
-    #     u'A user centred design process provides a professional approach to creating software with functionality that users need.')
-    #
-    # text = NLP(u"Apple's logo was designed by Steve Jobs in early december 2006 in front of the Empire State Building.")
-    # text = NLP(u'John never believed that Hamilton shot Aaron Burr.')
-    # text = NLP(u"He hasn't yet seen the sun.")
-    #
-    # text = NLP(u'Morphology: the structure of words')
-    # text = NLP(u'John thought he would win the prize.')
-    # text = NLP(u"However, they think this won't work.")
-    # text = NLP(u"In principle, you've got it all wrong.")
-    # # What did he come up with?
-    # text = NLP(u"He came up with the idea of a time machine.")
-    # text = NLP(u"They were looking forward to finishing the lesson on RISC architecture.")
-    #
-    # text = NLP(u"the essential elements are an")
-    # text = NLP(u"A car is red. It was seen down the highway.")
-    # text = NLP(
-    #     u"As Drummond turned his boat seawards and proceeded back to the offshore squadron which was still engaged in an artillery duel with the German defenders, one of the missing launches, ML276 passed her, having caught up with the lost cruiser at this late stage.")
-    # text = NLP(u"She bought me these books. She got these books for me. I read them one by one.")
-    # text = NLP(
-    #     u"NLP is essentially multidisciplinary: it is closely related to linguistics (although the extent to which NLP overtly draws on linguistic theory varies considerably)")
-    # text = NLP(
-    #     u"Like NLP, formal linguistics deals with the development of models of human languages, but some approaches in linguistics reject the validity of statistical techniques, which are seen as an essential part of computational linguistics.")
-    # text = NLP(u"Compositional semantics is the construction of meaning (often expressed as logic) based on syntax.")
-    # text = NLP(u"The book, which is now at the store, has sold over 1000 copies so far.")
-    # text = NLP(u"The computer whose hard disk was broken was taken away.")
-    # # text = NLP(u"Janoff presented Jobs with several different monochromatic themes for the “bitten” logo, and Jobs immediately took a liking to it.")
-    #
-    # text = NLP(u"Mark's fingerprints were found after the investigation.")
-    # text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
-    # text = NLP(
-    #     u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
-    # text = NLP(u'This text is one of the most famous ones in history.')
-    # text = NLP(u'Darwin studied how species evolve.')
-    # text = NLP(u'How does this happen?.')
-    # text = NLP(u'John went to the University of Cambridge.')
-    # text = NLP(u'You can substitute flour with self rising flour.')
-    # text = NLP(u'OCaml uses a uniform memory representation in which every OCaml variable is stored as a value.')
-    # text = NLP(u"The OCaml compiler translates such an expression into an explicit allocation for the block from OCaml's runtime system.")
-    # # text = NLP(u'One subtopic in NLG which has been extensively investigated is generation of referring expressions: given some information about an entity, how do we choose to refer to it?')
-    # # text = NLP(u'It is concluded that that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
-    # text = NLP(u"The colored stripes were conceived to make the logo more accessible, and to represent the fact the monitor could reproduce images in color.")
-    # text = NLP(u"Why is this unreliable?")
-    # text = NLP(u"As you build and maintain more complex OCaml applications, you'll need to interface with various external system tools that operate on compiled OCaml binaries.")
-    # show_dependencies(text, port=5002)
-    # for nc in text.noun_chunks:
-    #     print(nc)
-
-    # print(get_phrase(text[7]))
-
-
 def generate_dobj_pobj_question(match):
     subject = match.get_first_token()
     root_verb = subject.head
@@ -738,54 +574,16 @@ def generate_dobj_pobj_question(match):
     return questions
 
 
-def generate_q():
-    initialize_question_patterns()
-    # text = NLP(u'Computer Science is the study of both practical and theoretical approaches to computers.')
-    # text = NLP(u'A router is a networking device that forwards data packets between computer networks.')
-    # text = NLP(u"Stacy went to see Johnny at the store.")
-    # text = NLP(u'From outside to inside, the chip contains several layers of complex intertwined transistors.')
-    # text = NLP(u'A user centred design process could provide a professional approach to creating software with functionality that users need.')
-    # text = NLP(u"Apple's logo was designed by Steve Jobs in early december 2006.")
-    # text = NLP(u'John gave Mary the book.')
-    # text = NLP(u"Apple's logo was designed by Steve Jobs in early december 2006.")
-    # text = NLP(u'A computer scientist specializes in the theory of computation.')
-    # text = NLP(u'Machines for calculating fixed numerical tasks such as the abacus have existed since antiquity.')
-    # text = NLP(u'The ecclesiastical parish of Navenby was originally placed in the Longoboby Rural Deanery.')
-    # text = NLP(u'A router helps with packet forwarding.')
-    # text = NLP(u'The handle should be attached before the mantle.')
-    # text = NLP(u'The Bill fo Rights gave the new federal government greater legitimacy.')
-    # text = NLP(u"The general took his soldiers to the hiding place.")
-    text = NLP(u"Apple’s first logo, designed by Jobs and Wayne, depicts Sir Isaac Newton sitting under an apple tree.")
-    text = NLP(u"John gave a present to Joanna.")
-    text = NLP(u'Darwin studied how species evolve.')
-    text = NLP(
-        u'During the Gold Rush years in northern California, Los Angeles became known as the "Queen of the Cow Counties" for its role in supplying beef and other foodstuffs to hungry miners in the north.')
-    text = NLP(
-        u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
-    # text = NLP(u'Almost immediately, though, this was replaced by Rob Janoff’s “rainbow Apple”, the now-familiar rainbow-colored silhouette of an apple with a bite taken out of it.')
+def generare_ccomp_question(match):
+    return []
 
-    # text = NLP(u'In the end, it is concluded that the airspeed velocity of a (European) unladen swallow is about 24 miles per hour or 11 meters per second.')
-    # text = NLP(u"The game was played on February 7, 2016, at Levi's Stadium in the San Francisco Bay Area at Santa Clara, California.")
-    # text = NLP(u"An Apple fell on Newton's head.")
-    # text = NLP(u"Mario Kart is the most annoying game to be played.")
-    # text = NLP(u"Software that is usable for its purpose is sometimes described by programmers as “intuitive” (easy to learn, easy to remember, easy to apply to new problems) or “powerful” (efficient, effective)")
-    # text = NLP(u"This course attempts, so far as possible within 8 lectures, to discuss the important aspects of fields including: Interaction Design, User Experience Design (UX), Interactive Systems Design, Information Visualisation, Cognitive Ergonomics, Man-Machine Interface (MMI), User Interface Design (UI), Human Factors, Cognitive Task Design, Information Architecture (IA), Software Product Design, Usability Engineering, User-Centred Design (UCD) and Computer Supported Collaborative Work (CSCW).")
-    # text = NLP(u"Almost immediately, though, this was replaced by Rob Janoff’s “rainbow Apple”, the now-familiar rainbow-colored silhouette of an apple with a bite taken out of it.")
 
-    # show_dependencies(text)
+# =========================== HANDLING COREFERENCES ===========================
 
-    text = NLP(u'You can substitute flour with self rising flour.')
-    text = NLP(u'DoTERRA Cheer Uplifting Blend of citrus and spice essential oils provides a cheerful boost of happiness and positivity when you are feeling down, its sunshiny, fresh, optimistic aroma will brighten any moment of your day.')
-    text = NLP(u"The OCaml compiler translates such an expression into an explicit allocation for the block from OCaml's runtime system.")
-    sentence_object_mock = Sentence(text, 1)
-    # kw1 = Keyword(sentence_object_mock.as_doc[9], score=0.2, sentence=sentence_object_mock.as_doc)
-    # kw2 = Keyword(sentence_object_mock.as_doc[10], score=0.1, sentence=sentence_object_mock.as_doc)
-    # sentence_object_mock.add_key(kw1)
-    # sentence_object_mock.add_key(kw1)
-    # sentence_object_mock.add_key(
-    #     KeyPhrase(start_index=9, end_index=10, sentence=sentence_object_mock.as_doc, keywords=[kw1, kw2]))
-    generate_questions_trial(trial_sentence=sentence_object_mock, simplify=True, debug=True)
-    generate_questions_trial(text=text.text, simplify=False, debug=True)
+
+def get_coreference(pronoun):
+    """Implement if time -> pronoun get document coreference with neuralcoref"""
+    return 0
 
 
 def score_and_filter(questions, descending=True):
@@ -812,17 +610,6 @@ def score_and_filter(questions, descending=True):
         sorted_questions = new_sorted_questions
 
     return questions
-
-
-def print_sentences_with_questions(sentences_with_questions, with_keys=False):
-    for sent in sentences_with_questions.keys():
-        if sentences_with_questions[sent]:
-            print("\nSentence: {}\n".format(sent.text))
-            if with_keys:
-                print("Key-phrases: {}\n".format([kp.text for kp in sent.key_phrases]))
-
-            for question in sentences_with_questions[sent]:
-                print("Question: {}".format(question.content))
 
 
 def generate_questions_trial(trial_sentence=None, text=None, simplify=False, debug=False):
@@ -860,7 +647,7 @@ def generate_questions_trial(trial_sentence=None, text=None, simplify=False, deb
 
     for sentence in top_sentences:
         if simplify:
-            sentences = simplifier.simplify_sentence(sentence.text)
+            sentences = simplifier.simplify_sentence_1(sentence.text)
         else:
             sentences = [sentence.as_doc]
 
@@ -904,10 +691,7 @@ def generate_questions_trial(trial_sentence=None, text=None, simplify=False, deb
     return sorted_questions
 
 
-# Switch statement, sort of
-def generare_ccomp_question(match):
-    return []
-
+# =========================== PATTERN HANDLING ===========================
 
 pattern_to_question = {
     "ATTR": lambda match: generate_attribute_questions(match),
@@ -921,6 +705,8 @@ pattern_to_question = {
 
 def handle_match(pattern_name):
     return pattern_to_question[pattern_name]
+
+# =========================== PATTERN HANDLING ===========================
 
 
 def sort_by_score(unsorted, descending=False):
@@ -945,6 +731,20 @@ def replace_coreferences(resolved_sentences, original_sentence_objects):
             original_sentence_objects[i].text = sentence.text
 
 
+# =========================== MAIN QUESTION GENERATION ==========================
+
+
+def print_sentences_with_questions(sentences_with_questions, with_keys=False):
+    for sent in sentences_with_questions.keys():
+        if sentences_with_questions[sent]:
+            print("\nSentence: {}\n".format(sent.text))
+            if with_keys:
+                print("Key-phrases: {}\n".format([kp.text for kp in sent.key_phrases]))
+
+            for question in sentences_with_questions[sent]:
+                print("Question: {}".format(question.content))
+
+
 def get_sentences_with_questions(sentences, simplify=False):
     initialize_question_patterns()
 
@@ -954,7 +754,7 @@ def get_sentences_with_questions(sentences, simplify=False):
     for sentence in sentences:
         sentences_with_questions[sentence] = set([])
         if simplify:
-            simplified_sentences = simplifier.simplify_sent_2(sentence.text)
+            simplified_sentences = simplifier.simplify_sentence_2(sentence.text)
         else:
             simplified_sentences = [NLP(sentence.text)]
 

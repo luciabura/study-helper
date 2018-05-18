@@ -6,7 +6,7 @@ from spacy.matcher import Matcher
 from neuralcoref import Coref
 from question_generation import *
 from text_processing.grammar import extract_noun_phrase, is_valid_sentence, find_parent_verb, \
-    get_verb_correct_tense, remove_spans, get_subtree_span, safe_join
+    get_verb_correct_tense, remove_spans, get_subtree_span, make_spacy_sentence
 from utilities import NLP
 from utilities.read_write import read_file
 
@@ -20,6 +20,11 @@ MATCHER = Matcher(NLP.vocab)
 
 
 def initialize_matcher_patterns():
+    """
+    Initializez the spacy Matcher by adding corresponding patterns.
+    Options: ! - shouldn't appear, * - 0 or more, ? - once or more
+    :return: void
+    """
     appositive = [{DEP: 'appos'}]
     conjoined_sentences_1 = [{DEP: 'nsubj'}, ANY_TOKEN, {POS: 'VERB', DEP: 'ROOT'}, ANY_TOKEN,
                              {POS: 'VERB', DEP: 'conj'}]
@@ -43,38 +48,23 @@ def initialize_matcher_patterns():
 
     # test_pattern = [{DEP: 'nsubj'}, ANY_ALPHA, {POS: 'VERB'}, ANY_TOKEN, {DEP: 'nsubj'}]
 
-    # MATCHER.add("CONJ_SENT", None, conjoined_sentences_1)
-    # MATCHER.add("CONJ_SENT", None, conjoined_sentences_2)
+
     MATCHER.add("PUNCT", None, commas)
     MATCHER.add("PUNCT", None, comma_end)
     MATCHER.add("PUNCT", None, parenthesis)
     MATCHER.add("ACL", None, adjectival_modifier)
-    # MATCHER.add("RELCL", None, relative_clause_modifier)
     MATCHER.add("APPOS", None, appositive)
+
+    # MATCHER.add("CONJ_SENT", None, conjoined_sentences_1)
+    # MATCHER.add("CONJ_SENT", None, conjoined_sentences_2)
+    # MATCHER.add("RELCL", None, relative_clause_modifier)
     # MATCHER.add("CCOMP", None, clausal_complement)
     # MATCHER.add("LEAD_PP", None, leading_pp)
     # MATCHER.add("SUBORD", None, adverbial_clause_modifier)
-
     # MATCHER.add("TP", None, test_pattern)
 
 
-def post_process(sentence_components):
-    """
-    Accepts sentence components in form of list of strings
-    Gives a post processed sentence with a . at the end.
-    """
-    sent_text = ' '.join(sentence_components)
-    if sent_text[-1] is not '.':
-        sent_text += '.'
-
-    return sent_text
-
-
-def extract_conjoined_subjects(match):
-    subj_1 = match.get_first_token()
-
-    return []
-
+# =========================== EXTRACTION METHODS ===========================
 
 def extract_subordinate(match):
     advcl = match.get_token_by_attributes(dependency='advcl')
@@ -255,11 +245,6 @@ def extract_from_punct(match):
     return sents
 
 
-def TP(match):
-    print(match.span)
-    return []
-
-
 def extract_relative_clause_modifier(match):
     sentences = []
     verb_relcl = match.get_last_token()
@@ -305,6 +290,12 @@ def extract_from_clausal_complement(match):
     return sentences
 
 
+def extract_conjoined_subjects(match):
+    subj_1 = match.get_first_token()
+
+    return []
+
+
 def extract_leading_pp(match):
     root_verb = match.get_token_by_attributes(dependency='ROOT')
     preposition = match.get_first_token()
@@ -317,6 +308,13 @@ def extract_leading_pp(match):
     sentence.append('.')
 
     return [sentence]
+
+
+def TP(match):
+    print(match.span)
+    return []
+
+# =========================== PATTERN HANDLING ===========================
 
 
 pattern_to_simplification = {
@@ -334,6 +332,119 @@ pattern_to_simplification = {
 
 def handle_match(pattern_name):
     return pattern_to_simplification[pattern_name]
+
+# =========================== MAIN SIMPLIFICATION ===========================
+
+
+def post_process(sentence_components):
+    """
+    Accepts sentence components in form of list of strings
+    Gives a post processed sentence with a . at the end.
+    """
+    sent_text = ' '.join(sentence_components)
+    if sent_text[-1] is not '.':
+        sent_text += '.'
+
+    return sent_text
+
+
+def is_simple(sent):
+    if any(tok.text in [',', '(', '{', '+'] for tok in sent):
+        return False
+
+    return True
+
+
+def simplify_sentence_2(sentence):
+    """
+    Accepts a sentence as text and outputs a list of simplified forms of that sentence
+    in spacy Doc format
+    :param sentence: Str
+    :return: [Doc1, Doc2 ...]
+    """
+    initialize_matcher_patterns()
+    sentences = []
+    seen_sents = [''.join(sentence.split(" "))]
+    sent_doc = NLP(sentence)
+    if is_simple(sent_doc):
+        return [sent_doc]
+
+    queue = Queue()
+    queue.put(sent_doc)
+    while not queue.empty():
+        sent = queue.get()
+        matches = MATCHER(sent)
+
+        for ent_id, start, end in matches:
+            match = Match(ent_id, start, end, sent)
+            pattern_name = NLP.vocab.strings[ent_id]
+
+            new_sents_comps = handle_match(pattern_name)(match)
+            new_sents_text = list(map(lambda y: post_process(y), new_sents_comps))
+
+            for s in new_sents_text:
+                s_check = ''.join(s.split(" "))
+                if s_check not in seen_sents:
+                    seen_sents.append(s_check)
+                    s_doc = NLP(s)
+                    if is_valid_sentence(s_doc):
+                        if is_simple(s_doc):
+                            sentences.append(s_doc)
+                        else:
+                            queue.put(s_doc)
+
+    return sentences
+
+# =========================== TESTING METHODS ===========================
+
+
+def simplify_sentence_1(sentence, coreferences={}):
+    """The main idea is the following:
+    1. Check is anything is in coreferences and resolve the sentence
+    2. Run matcher against sentence and extract sentences appropriately -> consider case """
+
+    initialize_matcher_patterns()
+    sentences_ = []
+    seen_sents = []
+
+    queue = Queue()
+    queue.put(NLP(sentence))
+    while not queue.empty():
+        sent = queue.get()
+        matches = MATCHER(sent)
+
+        if sent not in sentences_ and is_simple(sent):
+            sentences_.append(sent)
+
+        for ent_id, start, end in matches:
+            match = Match(ent_id, start, end, sent)
+            pattern_name = NLP.vocab.strings[ent_id]
+
+            sentence_components = list(filter(lambda ss: ss not in seen_sents,
+                                              handle_match(pattern_name)(match)))
+            seen_sents.extend(sentence_components)
+
+            simplified_sentences = list(map(make_spacy_sentence, sentence_components))
+
+            valid_sentences = list(filter(is_valid_sentence, simplified_sentences))
+            # special check if contains punctuation maybe?
+            for s in valid_sentences:
+                # sentences_.append(s)
+                queue.put(s)
+
+    valid_sentences = list(filter(is_valid_sentence, sentences_))
+    return valid_sentences
+
+
+def show_dependencies(sentence, port=5001):
+    displacy.serve(sentence, style='dep', port=port)
+
+
+def simplify_sent_test():
+    sentence = input("Sentence to simplify:")
+    sents = simplify_sentence_1(sentence)
+    for s in sents:
+        print(s)
 
 
 # def sentences():
@@ -392,94 +503,7 @@ def handle_match(pattern_name):
 #     # simplify_sent_2(t26.text)
 
 
-def make_spacy_sentence(text_list):
-    text = safe_join(text_list)
-    doc = NLP(text)
-    return doc
-
-
-def is_simple(sent):
-    if any(tok.text in [',', '(', '{', '+'] for tok in sent):
-        return False
-
-    return True
-
-
-def simplify_sent_2(sentence):
-    initialize_matcher_patterns()
-    sentences = []
-    seen_sents = [''.join(sentence.split(" "))]
-    sent_doc = NLP(sentence)
-    if is_simple(sent_doc):
-        return [sent_doc]
-
-    queue = Queue()
-    queue.put(sent_doc)
-    while not queue.empty():
-        sent = queue.get()
-        matches = MATCHER(sent)
-
-        for ent_id, start, end in matches:
-            match = Match(ent_id, start, end, sent)
-            pattern_name = NLP.vocab.strings[ent_id]
-
-            # print(pattern_name)
-            # print(match.span)
-
-            new_sents_comps = handle_match(pattern_name)(match)
-            new_sents_text = list(map(lambda y: post_process(y), new_sents_comps))
-            # print(new_sents_text)
-
-            for s in new_sents_text:
-                s_check = ''.join(s.split(" "))
-                if s_check not in seen_sents:
-                    seen_sents.append(s_check)
-                    s_doc = NLP(s)
-                    if is_valid_sentence(s_doc):
-                        if is_simple(s_doc):
-                            sentences.append(s_doc)
-                        else:
-                            queue.put(s_doc)
-
-    return sentences
-
-
-def simplify_sentence(sentence, coreferences={}):
-    """The main idea is the following:
-    1. Check is anything is in coreferences and resolve the sentence
-    2. Run matcher against sentence and extract sentences appropriately -> consider case """
-
-    initialize_matcher_patterns()
-    sentences_ = []
-    seen_sents = []
-
-    queue = Queue()
-    queue.put(NLP(sentence))
-    while not queue.empty():
-        sent = queue.get()
-        matches = MATCHER(sent)
-
-        if sent not in sentences_ and is_simple(sent):
-            sentences_.append(sent)
-
-        for ent_id, start, end in matches:
-            match = Match(ent_id, start, end, sent)
-            pattern_name = NLP.vocab.strings[ent_id]
-
-            sentence_components = list(filter(lambda ss: ss not in seen_sents,
-                                              handle_match(pattern_name)(match)))
-            seen_sents.extend(sentence_components)
-
-            simplified_sentences = list(map(make_spacy_sentence, sentence_components))
-
-            valid_sentences = list(filter(is_valid_sentence, simplified_sentences))
-            # special check if contains punctuation maybe?
-            for s in valid_sentences:
-                # sentences_.append(s)
-                queue.put(s)
-
-    valid_sentences = list(filter(is_valid_sentence, sentences_))
-    return valid_sentences
+# =========================== COREFERENCE RESOLUTION ===========================
 
 
 def get_coreferences(text):
@@ -509,22 +533,12 @@ def get_coreferences(text):
     return resolved_utterance_text
 
 
-def show_dependencies(sentence, port=5001):
-    displacy.serve(sentence, style='dep', port=port)
-
-
-def simplify_sent_test():
-    sentence = input("Sentence to simplify:")
-    sents = simplify_sentence(sentence)
-    for s in sents:
-        print(s)
-
-
 def resolve_coreferences():
     FP = input('Filepath:')
     text = read_file(FP)
     get_coreferences(text)
 
+# =========================== MAIN FUNCTION ===========================
 
 # if __name__ == '__main__':
 #     # doc = NLP(u'The set of natural numbers is countably infinite and different from the compatibility of systems.')

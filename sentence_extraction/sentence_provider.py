@@ -10,48 +10,13 @@ Ideally, we want the summarized sentences to appear
 import math
 import networkx as nx
 
-from keyword_extraction.keyword_provider import KeywordProvider, Keyword, KeyPhrase
+from keyword_extraction.keyword_provider import KeywordProvider
+from sentence_extraction.sentence import Sentence
 from text_processing import preprocessing as preprocess
-from utilities import NLP
 from utilities.read_write import read_file
 
 IDENTIFIER = '_C'
 WINDOW_SIZE = 2
-
-
-class Sentence(object):
-    def __init__(self, sentence, score):
-        self.score = score
-        self.as_doc = sentence
-        self.keywords = []
-        self.key_phrases = []
-        self.text = self.as_doc.text
-
-        self.simplified_versions = []
-
-    def compute_score(self):
-        score = self.score
-
-        for kp in self.keywords:
-            div = math.log(len(self.keywords), 2)
-            if div == 0:
-                div = 1
-            score += kp.score / div
-
-        self.score = score
-
-    def add_key(self, obj):
-        if isinstance(obj, Keyword):
-            self.keywords.append(obj)
-
-        elif isinstance(obj, KeyPhrase):
-            self.key_phrases.append(obj)
-
-        else:
-            print('Unsupported object addition!')
-
-    def add_simplified_version(self, simplified):
-        self.simplified_versions.append(simplified)
 
 
 class SentenceProvider(object):
@@ -195,8 +160,9 @@ if __name__ == '__main__':
 
     # topic = NLP(input("Topic?: "))
     # summarizer_topic = SentenceProvider(document, topic=topic)
-    #
+
     print(summarizer.get_summary())
+
     # print("")
     # print(summarizer_topic.get_summary())
     # print(summarizer.get_summary())
