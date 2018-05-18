@@ -1,7 +1,7 @@
 import math
 
 import text_processing.preprocessing as preprocess
-from keyword_extraction.keywords import get_keywords
+from keyword_extraction.keywords_v1 import get_keywords
 from utilities.read_write import read_file
 
 
