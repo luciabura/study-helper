@@ -1,5 +1,5 @@
-from keyword_extraction import keywords
-from keyword_extraction import keywords_TR_lem
+from keyword_extraction import keywords_v1
+from keyword_extraction import keyword_provider
 
 from text_processing.preprocessing import NLP
 
@@ -15,7 +15,7 @@ def test_build_lemmas():
                     'magic': ['magic'],
                     'magical': ['magical']}
 
-    words_to_lemmas, lemmas_to_words = keywords.build_lemmas(words)
+    words_to_lemmas, lemmas_to_words = keywords_v1.build_lemmas(words)
     result_lemmas = list(lemmas_to_words.keys())
     result_words = list(words_to_lemmas.keys())
 
@@ -32,26 +32,17 @@ def test_get_graph_tokens():
     INCLUDE_POS_FILTER = []
     tokens = [token for token in NLP(text)]
 
-    graph_tokens = keywords_TR_lem.get_graph_tokens(tokens, INCLUDE_POS_FILTER)
+    graph_tokens = keyword_provider.get_graph_tokens(tokens, INCLUDE_POS_FILTER)
     expected_graph_tokens = []
 
     assert graph_tokens == expected_graph_tokens
 
     # Only nouns
     INCLUDE_POS_FILTER = ['NN']
-    graph_tokens = keywords_TR_lem.get_graph_tokens(tokens, INCLUDE_POS_FILTER)
+    graph_tokens = keyword_provider.get_graph_tokens(tokens, INCLUDE_POS_FILTER)
     expected_graph_tokens = [tokens[3], tokens[4]]
 
     assert graph_tokens == expected_graph_tokens
 
-
-def test_add_graph_edges():
-    # TODO:
-    return True
-
-
-def test_build_graph():
-    # TODO:
-    return True
 
 

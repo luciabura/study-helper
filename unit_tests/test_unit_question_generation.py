@@ -1,6 +1,7 @@
 import pytest
 
-from question_generation.questions import prepare_question_verb, get_verb_form
+from question_generation.question_provider import score_and_filter, Question, prepare_question_verb, get_verb_form
+from sentence_extraction.sentence_provider import Sentence
 from utilities import NLP
 
 @pytest.mark.parametrize(
@@ -55,3 +56,22 @@ def test_get_correct_verb_helper_none():
 
     assert verb_with_helper is None
     assert verb_no_helper is None
+
+
+def test_sort_and_filter():
+    sent = Sentence(NLP("John is at the supermarket."), 1)
+
+    q1 = Question("Where is John?", sent, None)
+    q1.score = 2.0
+
+    q2 = Question("Who is at the supermaket?", sent, None)
+    q2.score = 1.0
+
+    q3 = Question("Where be John?", sent, None)
+    q3.score = 1.9
+
+    qs = {q1, q2, q3}
+
+    filtered_questions = score_and_filter(qs)
+
+    assert filtered_questions == {q1, q2}
