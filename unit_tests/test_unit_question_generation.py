@@ -1,7 +1,8 @@
 import pytest
 
-from question_generation.question_provider import score_and_filter, Question, prepare_question_verb, get_verb_form
-from sentence_extraction.sentence_provider import Sentence
+from question_generation.question_provider import score_and_filter, prepare_question_verb, get_verb_form
+from question_generation.question import Question
+from sentence_extraction.sentence import Sentence
 from utilities import NLP
 
 @pytest.mark.parametrize(
