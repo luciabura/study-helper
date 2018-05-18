@@ -1,4 +1,5 @@
 from spacy import displacy
+from spacy.tokens import Token, Span, Doc
 
 from utilities import INFINITY, NLP
 
@@ -11,26 +12,7 @@ def has_pronouns(span):
     return False
 
 
-def extract_noun_phrase(token, sentence, exclude_span=None, include_span=None, discard_punct=None):
-    # start_index = INFINITY
-    # end_index = -1
-
-    # for child in token.subtree:
-    #     """This will fail in some cases, might want to try to just get full subtree, but then need to pay attention
-    #     what we call it on. For now, I'm going to call it only on subjects and object so should be OK to get subtree"""
-    #     # if exclude_span and child in exclude_span:
-    #     #     continue
-    #     if include_span and child not in include_span:
-    #         continue
-    #     elif discard_punct and child.text in discard_punct:
-    #         continue
-    #
-    #     if start_index > child.i:
-    #         start_index = child.i
-    #
-    #     if end_index < child.i:
-    #         end_index = child.i
-
+def extract_noun_phrase(token, sentence, exclude_span=None, discard_punct=None):
     subtree_span = get_subtree_span(token, sentence)
 
     np_tokens = [tok for tok in subtree_span]
@@ -97,7 +79,7 @@ def is_3rd_person(verb):
 
 def is_valid_subject(subject):
     """If it has any coreference or if it contains something like those, this etc, then it isn't"""
-    if any(tok.pos_ == 'PRON' for tok in subject):
+    if any(tok.pos_ == 'PRON' and tok.lower_ not in ['you', 'we'] for tok in subject):
         return False
 
     return True
@@ -160,13 +142,14 @@ def get_verb_correct_tense(dependant_noun_phrase, dependant_verb, verb_lemma='')
 
 
 def remove_spans(sentence, spans):
-    sentence_text = []
-    for tok in sentence:
-        if any(tok in span for span in spans):
-            continue
-        sentence_text.append(tok.text)
-    # sentence = NLP(' '.join(sentence_text))
-    return sentence_text
+    sentence_text = sentence.text
+    for span in spans:
+        if isinstance(span, Span):
+            span = span.as_doc()
+
+        sentence_text = sentence_text.replace(span.text, " ")
+
+    return sentence_text.split(" ")
 
 
 def get_subtree_span(token, sentence):
